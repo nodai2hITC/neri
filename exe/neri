@@ -2,6 +2,6 @@
 # encoding: UTF-8
 
 require "neri"
-require "neri/build.rb"
+load "neri/build.rb"
 
 Neri.run()
