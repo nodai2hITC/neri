@@ -41,10 +41,11 @@ module Neri
       filepath = nil
       load_path.each do |path|
         ["", ".rb"].each do |ext|
-          filepath = path + feature + ext if exist_in_datafile?(path + feature + ext)
+          next unless exist_in_datafile?(path + feature + ext)
+          filepath = adjust_path(path + feature + ext)
         end
       end
-
+      
       if filepath
         return false if $LOADED_FEATURES.index(filepath)
         code = load_code(filepath)
@@ -81,7 +82,7 @@ module Neri
     def file_read(filename, encoding = Encoding::BINARY)
       str = nil
       if exist_in_datafile?(filename)
-        length, offset = @files[filename.encode(Encoding::UTF_8)]
+        length, offset = @files[adjust_path(filename.encode(Encoding::UTF_8))]
         str = read(length, offset)
       else
         str = File.binread(filename)
@@ -95,7 +96,7 @@ module Neri
     end
     
     def exist_in_datafile?(filename)
-      return @files.has_key?(filename.encode(Encoding::UTF_8))
+      return @files.has_key?(adjust_path(filename.encode(Encoding::UTF_8)))
     end
     
     private
@@ -112,6 +113,10 @@ module Neri
         str.unpack("Q*").zip((@xor * (str.bytesize / BLOCK_LENGTH)).unpack("Q*")){|a, b| s.push(a ^ b)}
         return s.pack("Q*")
       end
+    end
+    
+    def adjust_path(path)
+      return path.sub(/^\.\//, "")
     end
     
     def read(length, offset)

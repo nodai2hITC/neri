@@ -551,10 +551,14 @@ endlocal
     
     def create_datafile()
       nputs "Creating data_file '#{datafile}'."
+      data_files = @data_files.select { |file| File.file? file }
+      @data_files.select { |file| File.directory? file }.each do |dir|
+        data_files += Dir.glob(dir + "/**/*").select { |file| File.file? file }
+      end
       Neri.key = @encryption_key || "0" * 64
       open(datafile, "wb") do |f|
         pos = 0
-        files_str = @data_files.map{|file|
+        files_str = data_files.map{|file|
           filename = File.expand_path(file)
           filename = relative_path(filename, rubydir, "*neri*" + File::SEPARATOR)
           filename = relative_path(filename, Dir.pwd)
@@ -567,7 +571,7 @@ endlocal
         
         f.write(sprintf("%#{BLOCK_LENGTH}d", files_str.bytesize))
         f.write(xor(files_str))
-        @data_files.each do |file|
+        data_files.each do |file|
           f.write(xor(File.binread(file)))
         end
       end
