@@ -602,16 +602,16 @@ endlocal
       exefile = batchfile.sub(/\.bat$/, ".exe")
       nputs "Creating exe_file '#{exefile}'."
       File.delete(exefile) if File.exist?(exefile)
-      args = "/bat #{batchfile} /exe #{exefile}"
+      args = %[ /bat "#{batchfile}" /exe "#{exefile}"]
       if options[:b2ec][:x64] == nil
         options[:b2ec][:x64] = true if RbConfig::CONFIG["target"].to_s.index("64")
       end
       
       args += options[:b2ec].map{|key, value|
         case value
-        when String; " /#{key.to_s.tr('_', '-')} \"#{value}\""
-        when true;   " /#{key.to_s.tr('_', '-')}"
-        else;        ""
+        when String; %[ /#{key.to_s.tr('_', '-')} "#{value}"]
+        when true;   %[ /#{key.to_s.tr('_', '-')}]
+        else;        %[]
         end
       }.join("")
       begin
