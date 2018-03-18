@@ -125,18 +125,23 @@ Neri は単独では bat ファイルを作成するのみですが、Bat To Exe
   そうでない場合はコンソールアプリになります。</dd>
   <dt>--x64</dt>
   <dd>64bit の exe ファイルを作成します。省略した場合、ruby 自体の bit 数に合わせます。</dd>
-  <dt>--admin</dt>
+  <dt>--uac-admin</dt>
   <dd>管理者として実行する exe ファイルを作成します。</dd>
   <dt>--fileversion &lt;version&gt;</dt>
   <dt>--productversion &lt;version&gt;</dt>
   <dd>ファイルバージョン・製品バージョンを設定します。
   &lt;version&gt; は、1,2,3,4 のように４つの数字をカンマ区切りで設定します。</dd>
-  <dt>--company &lt;company_name&gt;</dt>
-  <dt>--productname &lt;name&gt;</dt>
-  <dt>--internalname &lt;name&gt;</dt>
-  <dt>--description &lt;description&gt;</dt>
-  <dt>--copyright &lt;copyright&gt;</dt>
-  <dd>会社名・製品名・内部名・ファイルの説明・著作権を設定します。</dd>
+  <dt>--productname &lt;string&gt;</dt>
+  <dt>--internalname &lt;string&gt;</dt>
+  <dt>--description &lt;string&gt;</dt>
+  <dt>--company &lt;string&gt;</dt>
+  <dt>--trademarks &lt;string&gt;</dt>
+  <dt>--copyright &lt;string&gt;</dt>
+  <dd>製品名・内部名・ファイルの説明・会社名・商標・著作権を設定します。</dd>
+  <dt>--privatebuild &lt;string&gt;</dt>
+  <dt>--specialbuild &lt;string&gt;</dt>
+  <dt>--comments &lt;string&gt;</dt>
+  <dd>コメント等を設定します。</dd>
 </dl>
 
 #### UPX

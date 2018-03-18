@@ -42,14 +42,19 @@ options:
   --windows or --invisible
   --console or --visible
   --x64
-  --admin
-  --fileversion <version>
-  --productversion <version>
-  --company <company_name>
-  --productname <name>
-  --internalname <name>
-  --description <description>
-  --copyright <copyright>
+  --uac-admin
+  --fileversion <string>     # ex) 1,2,3,4
+  --productversion <string>  # ex) 1,2,3,4
+  --productname <string>
+  --originalfilename <string>
+  --internalname <string>
+  --description <string>
+  --company <string>
+  --trademarks <string>
+  --copyright <string>
+  --privatebuild <string>
+  --specialbuild <string>
+  --comments <string>
   
   --use-upx
   --upx-path <upx path>

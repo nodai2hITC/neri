@@ -32,16 +32,21 @@ module Neri
     b2ec_path: "Bat_To_Exe_Converter.exe",
     b2ec: {
       icon: "#{File.expand_path(File.dirname(__FILE__) + '/../../share/default.ico')}",
-      invisible:      nil,
-      x64:            nil,
-      admin:          nil,
-      fileversion:    nil,
-      productversion: nil,
-      company:        nil,
-      productname:    nil,
-      internalname:   nil,
-      description:    nil,
-      copyright:      nil
+      invisible:        nil,
+      x64:              nil,
+      uac_admin:        nil,
+      fileversion:      nil,
+      productversion:   nil,
+      productname:      nil,
+      originalfilename: nil,
+      internalname:     nil,
+      description:      nil,
+      company:          nil,
+      trademarks:       nil,
+      copyright:        nil,
+      privatebuild:     nil,
+      specialbuild:     nil,
+      comments:         nil
     },
     
     use_upx:     false,
@@ -117,14 +122,19 @@ options:
   --windows or --invisible
   --console or --visible
   --x64
-  --admin
-  --fileversion <version>     # ex) 1,2,3,4
-  --productversion <version>  # ex) 1,2,3,4
-  --company <company_name>
-  --productname <name>
-  --internalname <name>
-  --description <description>
-  --copyright <copyright>
+  --uac-admin
+  --fileversion <string>     # ex) 1,2,3,4
+  --productversion <string>  # ex) 1,2,3,4
+  --productname <string>
+  --originalfilename <string>
+  --internalname <string>
+  --description <string>
+  --company <string>
+  --trademarks <string>
+  --copyright <string>
+  --privatebuild <string>
+  --specialbuild <string>
+  --comments <string>
   
   --use-upx
   --upx-path <upx path>
@@ -223,22 +233,32 @@ options:
           options[:b2ec][:invisible] = false
         when "--x64"
           options[:b2ec][:x64] = true
-        when "--admin"
-          options[:b2ec][:admin] = true
+        when "--uac-admin"
+          options[:b2ec][:uac_admin] = true
         when "--fileversion"
           options[:b2ec][:fileversion] = ARGV.shift
         when "--productversion"
           options[:b2ec][:productversion] = ARGV.shift
-        when "--company"
-          options[:b2ec][:company] = ARGV.shift
         when "--productname"
           options[:b2ec][:productname] = ARGV.shift
+        when "--originalfilename"
+          options[:b2ec][:originalfilename] = ARGV.shift
         when "--internalname"
           options[:b2ec][:internalname] = ARGV.shift
         when "--description"
           options[:b2ec][:description] = ARGV.shift
+        when "--company"
+          options[:b2ec][:company] = ARGV.shift
+        when "--trademarks"
+          options[:b2ec][:trademarks] = ARGV.shift
         when "--copyright"
           options[:b2ec][:copyright] = ARGV.shift
+        when "--privatebuild"
+          options[:b2ec][:privatebuild] = ARGV.shift
+        when "--specialbuild"
+          options[:b2ec][:specialbuild] = ARGV.shift
+        when "--comments"
+          options[:b2ec][:comments] = ARGV.shift
         when "--use-upx"
           options[:use_upx] = true
         when "--upx-path"
@@ -582,16 +602,15 @@ endlocal
       exefile = batchfile.sub(/\.bat$/, ".exe")
       nputs "Creating exe_file '#{exefile}'."
       File.delete(exefile) if File.exist?(exefile)
-      options[:b2ec][:bat] = batchfile
-      options[:b2ec][:save] = exefile
+      args = "/bat #{batchfile} /exe #{exefile}"
       if options[:b2ec][:x64] == nil
         options[:b2ec][:x64] = true if RbConfig::CONFIG["target"].to_s.index("64")
       end
       
-      args = options[:b2ec].map{|key, value|
+      args += options[:b2ec].map{|key, value|
         case value
-        when String; " -#{key.to_s} \"#{value}\""
-        when true;   " -#{key.to_s}"
+        when String; " /#{key.to_s.tr('_', '-')} \"#{value}\""
+        when true;   " /#{key.to_s.tr('_', '-')}"
         else;        ""
         end
       }.join("")
