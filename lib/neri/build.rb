@@ -561,7 +561,7 @@ setlocal
 set PATH=%~dp0#{options[:system_dir]}\\#{relative_path(bindir)};%PATH%
 #{options[:chdir_first] ? 'cd /d "%~dp0"' : ''}
 if %~x0 == .exe ( shift )
-#{relative_path(rubyexe, bindir)}#{r} #{@rubyopt}#{enc} -e "#{ruby_code}"
+#{relative_path(rubyexe, bindir)}#{r} #{@rubyopt}#{enc} -e "#{ruby_code}" %1 %2 %3 %4 %5 %6 %7 %8 %9
 #{pause_code}
 endlocal
         EOF
