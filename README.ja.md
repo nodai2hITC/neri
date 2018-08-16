@@ -8,14 +8,17 @@ Neri は、Ruby スクリプトを Ruby 未インストール環境向けに配�
   - 展開しない分、起動が速い。
   - 実行ファイルを複数作りたいとき、OCRA ではサイズの大きな実行ファイルを複数生成することになってしまうが、Neri ではシステムファイルを共有できるので、全体のサイズが大きくならずに済む。
   - OCRA には「日本語を含むユーザー名の環境では起動できない」という問題があるが、Neri にはない。
-    - ただし Ruby のバージョンによっては、日本語を含むパス上では起動できない。（OCRA も同様。）
+    - ただし Ruby のバージョンによっては、日本語を含むパス上では起動できない。（この点は OCRA も同様。）
 - OCRA に比べての短所
-  - Neri 単独では、bat ファイルを作成することしかできない。
-    - ただし、後述する [Bat To Exe Converter](http://www.f2ko.de/en/b2e.php) を導入すれば、exe ファイルを自動で作成します。
+  - exe ファイルを作成するには、次のどちらかが必要。
+    - gcc と windres（Ruby の拡張ライブラリをコンパイルできる環境ならばおそらく大丈夫。）
+    - [Bat To Exe Converter](http://www.f2ko.de/en/b2e.php) ver.3
 
 ## インストール
 
     $ gem install neri
+
+現状、bundler での使用は保証できません。
 
 ## 使い方
 
@@ -96,10 +99,10 @@ Neri はデフォルトでは、enc フォルダ内の文字コードライブ�
 
 <dl>
   <dt>--output-dir &lt;dirname&gt;</dt>
-  <dd>出力先フォルダ名を指定します。省略すると、実行スクリプトファイルのファイル名から拡張子を省略したものになります。</dd>
+  <dd>出力先フォルダ名を指定します。省略すると、カレントフォルダ（./）になります。</dd>
   <dt>--system-dir &lt;dirname&gt;</dt>
   <dd>ruby 等がコピーされる、システムフォルダ名を指定します。デフォルトは "system" です。</dd>
-  <dt>--data-file &lt;filename&gt;</dt>
+  <dt>--datafile &lt;filename&gt;</dt>
   <dd>データファイル名を指定します。省略した場合、実行スクリプトファイルのファイル名の拡張子を ".dat" に変更したものになります。
   なお、このオプションを省略＆実行スクリプトファイル以外にデータファイルに入れるファイルが無い場合、データファイルは作成されず、実行スクリプトファイルがそのままシステムフォルダ内にコピーされます。</dd>
   <dt>--encryption-key &lt;key&gt;</dt>
@@ -107,13 +110,13 @@ Neri はデフォルトでは、enc フォルダ内の文字コードライブ�
   暗号化は簡単なものなので、解読されては困るような重要なデータには用いないでください。</dd>
 </dl>
 
-#### Bat To Exe Converter
-
-Neri は単独では bat ファイルを作成するのみですが、Bat To Exe Converter(ver.3) があれば exe ファイルを作成できます。
+#### exe ファイルの作成
 
 <dl>
   <dt>--no-exe</dt>
-  <dd>exe ファイルを作成しません。</dd>
+  <dd>exe ファイルは作成せず、bat ファイルを作成します。</dd>
+  <dt>--use-b2ec</dt>
+  <dd>exe ファイルの作成を、Bat To Exe Converter を用いて行うようにします。</dd>
   <dt>--b2ec-path &lt;bat_to_exe_converter_path&gt;</dt>
   <dd>Bat To Exe Converter がパスの通ったところにない場合、このオプションで場所を指定してください。</dd>
   <dt>--icon &lt;iconfile&gt;</dt>
@@ -125,9 +128,9 @@ Neri は単独では bat ファイルを作成するのみですが、Bat To Exe
   省略した場合、実行スクリプトファイルの拡張子が ".rbw" の場合、あるいは DXRuby を使用する場合にはウィンドウアプリになります。
   そうでない場合はコンソールアプリになります。</dd>
   <dt>--x64</dt>
-  <dd>64bit の exe ファイルを作成します。省略した場合、ruby 自体の bit 数に合わせます。</dd>
+  <dd>64bit の exe ファイルを作成します。省略した場合、ruby 自体の bit 数に合わせます。 ※ Bat To Exe Converter 使用時のみ有効</dd>
   <dt>--uac-admin</dt>
-  <dd>管理者として実行する exe ファイルを作成します。</dd>
+  <dd>管理者として実行する exe ファイルを作成します。 ※ Bat To Exe Converter 使用時のみ有効</dd>
   <dt>--fileversion &lt;version&gt;</dt>
   <dt>--productversion &lt;version&gt;</dt>
   <dd>ファイルバージョン・製品バージョンを設定します。
@@ -162,7 +165,7 @@ Neri は単独では bat ファイルを作成するのみですが、Bat To Exe
 
 #### 7-Zip
 
-[7-Zip](http://7-zip.org/) を使用することで、出力フォルダをまとめて zip ファイルにすることができます。
+[7-Zip](http://7-zip.org/) を使用することで、出力ファイルをまとめて zip ファイルにすることができます。
 
 <dl>
   <dt>--zipfile &lt;filename&gt;</dt>
@@ -173,7 +176,7 @@ Neri は単独では bat ファイルを作成するのみですが、Bat To Exe
 
 #### Inno Setup
 
-[Inno Setup](http://www.jrsoftware.org/isinfo.php) を使用することで、インストーラーを作成することができます。
+[Inno Setup](http://www.jrsoftware.org/isinfo.php) を使用することで、インストーラーを作成することができます。※ あまりテストしていません。
 
 <dl>
   <dt>--innosetup &lt;inno_script&gt;</dt>
@@ -211,7 +214,7 @@ Neri.file_exist?(filename) # -> bool
 ファイルが「データファイル内」または「実際に」存在すれば true を、無ければ false を返します。
 
 ```ruby
-Neri.file_read?(filename, encoding = Encoding::BINARY) # -> String
+Neri.file_read(filename, encoding = Encoding::BINARY) # -> String
 ```
 
 「データファイル内」または「実際に」存在するファイルをまるごと読み込みます（読み込むサイズは指定できません）。データファイル内にも実ファイルとしても存在する場合、データファイル内のものが優先されます。

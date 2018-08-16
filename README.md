@@ -37,6 +37,7 @@ options:
   --encryption-key <key>
   
   --no-exe
+  --use-b2ec
   --b2ec-path <bat_to_exe_converter_path>
   --icon <iconfile>
   --windows or --invisible

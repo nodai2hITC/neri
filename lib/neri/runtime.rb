@@ -66,9 +66,9 @@ module Neri
       if filepath
         code = load_code(filepath)
         if priv
-          eval(code, nil, filepath)
-        else
           Module.new.module_eval(code, filepath)
+        else
+          eval(code, nil, filepath)
         end
       else
         _neri_orig_load(filepath || file, priv)
