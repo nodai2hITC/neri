@@ -11,7 +11,7 @@ Neri は、Ruby スクリプトを Ruby 未インストール環境向けに配�
     - ただし Ruby のバージョンによっては、日本語を含むパス上では起動できない。（この点は OCRA も同様。）
 - OCRA に比べての短所
   - exe ファイルを作成するには、次のどちらかが必要。
-    - gcc と windres（Ruby の拡張ライブラリをコンパイルできる環境ならばおそらく大丈夫。）
+    - gcc と windres（Ruby Installer 2 With Devkit を使用している場合、使用前に `ridk enable` を実行してパスを通す必要があるかもしれません。）
     - [Bat To Exe Converter](http://www.f2ko.de/en/b2e.php) ver.3
 
 ## インストール
