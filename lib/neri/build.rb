@@ -25,7 +25,8 @@ module Neri
     
     output_dir: "./",
     system_dir: "system",
-    
+    neri_exed_path: Dir.getwd,
+
     datafile:       nil,
     encryption_key: nil,
     
@@ -627,17 +628,19 @@ int main(int argc, char *argv[])
          runruby[_MAX_PATH  * 32 + 1];
     PROCESS_INFORMATION pi; 
     STARTUPINFO si;
+    printf("MAIN_START");
     ZeroMemory(&si, sizeof(STARTUPINFO));
     
     if(GetModuleFileName(NULL, exepath, MAX_PATH * 2) != 0){
         _splitpath_s(exepath, drive, _MAX_DRIVE, dir, _MAX_DIR * 2, fname, _MAX_FNAME * 2, ext, _MAX_EXT * 2);
     } else {
+        printf("EXIT_FAILURE");
         exit(EXIT_FAILURE);
     }
     sprintf(paths, "PATH=%s%s#{system_dir}bin;%s", drive, dir, getenv("PATH"));
     putenv(paths);
     #{options[:chdir_first] ? 'sprintf(paths, "%s%s", drive, dir);chdir(paths);' : ''}
-    sprintf(runruby, "#{escape_cstr(ruby_command("%s%s"))} %s %s %s %s %s %s %s %s %s",
+    sprintf(runruby, "#{escape_cstr(ruby_command("%s%s"))}  %s %s %s %s %s %s %s",
         drive,
         dir,
         argc > 1 ? argv[1] : "",
@@ -705,6 +708,7 @@ END
 2 ICON "#{escape_cstr(options[:b2ec][:icon])}"
         EOF
       end
+     
       nsystem(%[windres -o "#{o_file}" "#{rc_file}"])
       nsystem(%[gcc#{options[:b2ec][:invisible] ? " -mwindows" : ""} -o "#{exe_file}" "#{c_file}" "#{o_file}"])
       nsystem(%[strip "#{exe_file}"])
@@ -715,12 +719,17 @@ END
       system_dir = "#{path}#{File.join(options[:system_dir], "")}"
       ruby_code = ""
       ruby_code = "Neri.key='#{@encryption_key}';" if @encryption_key
+      ruby_code += "Neri.exe_filepath='#{Dir.getwd}';"
+      ruby_code += "Neri::NERI_EXECUTABLE=true; "
+      ruby_code += "Neri.set_binding=binding; "
       if options[:datafile]
         ruby_code += "Neri.datafile='#{system_dir}' + #{unpack_filename(options[:datafile])};"
-        ruby_code += "load File.expand_path(#{unpack_filename(File.basename(scriptfile))})"
+     
       else
-        ruby_code += "load File.expand_path('#{system_dir}' + #{unpack_filename(scriptfile)})"
+        #実行しない
       end
+      ruby_code += "load File.expand_path('#{system_dir}' + #{unpack_filename(scriptfile)})"
+     
       
       r  = " -rneri"
       r += " -rneri/dxruby"       if @use_dxruby

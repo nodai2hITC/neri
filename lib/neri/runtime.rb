@@ -1,7 +1,10 @@
 require "neri/version"
+require 'pathname'
 
 alias :_neri_orig_require :require
 alias :_neri_orig_load    :load
+
+
 
 def require(feature)
   Neri.require(feature)
@@ -12,13 +15,18 @@ def load(file, priv = false)
 end
 
 module Neri
+  
   BLOCK_LENGTH = 32
   @datafile = nil
   @system_dir = nil
   @files = {}
   @xor = nil
-  
+  NERI_EXECUTABLE=false
   class << self
+    def set_binding=(top_binding)
+      @top_binding=top_binding
+    end
+
     def datafile=(datafile)
       @datafile = datafile
       @system_dir = File.dirname(File.expand_path(datafile)) + File::SEPARATOR
@@ -41,15 +49,15 @@ module Neri
       filepath = nil
       load_path.each do |path|
         ["", ".rb"].each do |ext|
-          next unless exist_in_datafile?(path + feature + ext)
-          filepath = adjust_path(path + feature + ext)
+          next unless exist_in_datafile?( feature )
+          filepath = adjust_path( feature )
         end
       end
       
       if filepath
         return false if $LOADED_FEATURES.index(filepath)
         code = load_code(filepath)
-        eval(code, nil, filepath)
+        eval(code, @top_binding, filepath)
         $LOADED_FEATURES.push(filepath)
         return true
       else
@@ -59,8 +67,13 @@ module Neri
     
     def load(file, priv = false)
       filepath = nil
+      if Neri.get_filepath!=nil
+        file2=Neri.get_filepath.join(file).to_s
+      else
+        file2=file
+      end
       (load_path + [""]).each do |path|
-        filepath = path + file if exist_in_datafile?(path + file)
+        filepath = path + file2 if exist_in_datafile?(path + file2)
       end
       
       if filepath
@@ -68,7 +81,7 @@ module Neri
         if priv
           Module.new.module_eval(code, filepath)
         else
-          eval(code, nil, filepath)
+          eval(code, @top_binding, filepath)
         end
       else
         _neri_orig_load(filepath || file, priv)
@@ -81,11 +94,18 @@ module Neri
     
     def file_read(filename, encoding = Encoding::BINARY)
       str = nil
-      if exist_in_datafile?(filename)
-        length, offset = @files[adjust_path(filename.encode(Encoding::UTF_8))]
+
+      if Neri.get_filepath!=nil
+        filename2=Neri.get_filepath.join(filename).to_s
+      else
+        filename2=filename
+      end
+
+      if exist_in_datafile?(filename2)
+        length, offset = @files[adjust_path(filename2.encode(Encoding::UTF_8))]
         str = read(length, offset)
       else
-        str = File.binread(filename)
+        str = File.binread(filename2)
       end
       str.force_encoding(encoding)
       return str
@@ -98,7 +118,14 @@ module Neri
     def exist_in_datafile?(filename)
       return @files.has_key?(adjust_path(filename.encode(Encoding::UTF_8)))
     end
-    
+    def exe_filepath=(exe_file_path)
+      @exe_filepath=Pathname(exe_file_path)
+    end
+
+
+    def get_filepath
+      @exe_filepath
+    end  
     private
     
     def xor(str)
@@ -141,5 +168,6 @@ module Neri
       code.force_encoding(encoding)
       return code
     end
+
   end
 end
