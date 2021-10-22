@@ -39,7 +39,7 @@ module Neri
     
     def require(feature)
       filepath = nil
-      load_path.each do |path|
+      (feature.match?(/\A([a-z]:|\\|\/|\.)/i) ? [""] : load_path).each do |path|
         ["", ".rb"].each do |ext|
           next unless exist_in_datafile?(path + feature + ext)
           filepath = adjust_path(path + feature + ext)
@@ -49,7 +49,7 @@ module Neri
       if filepath
         return false if $LOADED_FEATURES.index(filepath)
         code = load_code(filepath)
-        eval(code, nil, filepath)
+        eval(code, TOPLEVEL_BINDING, filepath)
         $LOADED_FEATURES.push(filepath)
         return true
       else
@@ -68,7 +68,7 @@ module Neri
         if priv
           Module.new.module_eval(code, filepath)
         else
-          eval(code, nil, filepath)
+          eval(code, TOPLEVEL_BINDING, filepath)
         end
       else
         _neri_orig_load(filepath || file, priv)
@@ -130,8 +130,9 @@ module Neri
     end
     
     def load_path()
-      return $LOAD_PATH unless @system_dir
-      return $LOAD_PATH.map{|path| path.sub(@system_dir, "*neri*#{File::SEPARATOR}") + File::SEPARATOR }
+      paths = $LOAD_PATH.map { |path| path.encode(Encoding::UTF_8) }
+      return paths unless @system_dir
+      paths.map { |path| path.sub(@system_dir, "*neri*#{File::SEPARATOR}") + File::SEPARATOR }
     end
     
     def load_code(file)

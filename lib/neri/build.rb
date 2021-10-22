@@ -320,6 +320,9 @@ options:
       unless options[:enable_did_you_mean]
         @rubyopt += " --disable-did_you_mean" unless @rubyopt.index("--disable-did_you_mean")
       end
+      if @data_files.size > 1 || options[:encryption_key]
+        options[:datafile] ||= basename + ".dat"
+      end
     end
     
     
@@ -588,9 +591,10 @@ options:
 @echo off
 setlocal
 set PATH=%~dp0#{options[:system_dir]}\\#{relative_path(bindir)};%PATH%
+set NERI_EXECUTABLE=%~0
 #{chdir}
 if %~x0 == .exe ( shift )
-#{ruby_command("%~dp0")} %1 %2 %3 %4 %5 %6 %7 %8 %9
+#{ruby_command(options[:chdir_first] ? "" : "%~dp0")} %1 %2 %3 %4 %5 %6 %7 %8 %9
 #{pause_command}
 endlocal
         EOF
@@ -613,6 +617,7 @@ endlocal
       open(c_file, "w:#{options[:external_encoding]}") do |f|
         f.puts <<-EOF
 #include <stdio.h>
+#include <stdlib.h>
 #include <windows.h>
 #include <unistd.h>
 
@@ -634,12 +639,13 @@ int main(int argc, char *argv[])
     } else {
         exit(EXIT_FAILURE);
     }
-    sprintf(paths, "PATH=%s%s#{system_dir}bin;%s", drive, dir, getenv("PATH"));
+    snprintf(paths, sizeof(paths), "NERI_EXECUTABLE=%s", exepath);
     putenv(paths);
-    #{options[:chdir_first] ? 'sprintf(paths, "%s%s", drive, dir);chdir(paths);' : ''}
-    sprintf(runruby, "#{escape_cstr(ruby_command("%s%s"))} %s %s %s %s %s %s %s %s %s",
-        drive,
-        dir,
+    snprintf(paths, sizeof(paths), "PATH=%s%s#{system_dir}bin;%s", drive, dir, getenv("PATH"));
+    putenv(paths);
+    #{options[:chdir_first] ? 'snprintf(paths, sizeof(paths), "%s%s", drive, dir);chdir(paths);' : ''}
+    snprintf(runruby, sizeof(runruby), "#{escape_cstr(ruby_command(options[:chdir_first] ? "" : "%s%s"))} %s %s %s %s %s %s %s %s %s",
+        #{options[:chdir_first] ? "" : "drive, dir,"}
         argc > 1 ? argv[1] : "",
         argc > 2 ? argv[2] : "",
         argc > 3 ? argv[3] : "",
@@ -717,7 +723,7 @@ END
       ruby_code = "Neri.key='#{@encryption_key}';" if @encryption_key
       if options[:datafile]
         ruby_code += "Neri.datafile='#{system_dir}' + #{unpack_filename(options[:datafile])};"
-        ruby_code += "load File.expand_path(#{unpack_filename(File.basename(scriptfile))})"
+        ruby_code += "load #{unpack_filename(File.basename(scriptfile))}"
       else
         ruby_code += "load File.expand_path('#{system_dir}' + #{unpack_filename(scriptfile)})"
       end

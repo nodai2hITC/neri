@@ -6,7 +6,7 @@ module Neri
   module Ayame
     def new(filename)
       if Neri.exist_in_datafile?(filename)
-        ayame = load_from_memory(Neri.file_read(path))
+        ayame = load_from_memory(Neri.file_read(filename))
         return ayame
       else
         return super
