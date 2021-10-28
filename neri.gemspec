@@ -8,8 +8,8 @@ Gem::Specification.new do |spec|
   spec.authors       = ["nodai2hITC"]
   spec.email         = ["nodai2h.itc@gmail.com"]
 
-  spec.summary       = %q{One-Click Ruby Application Builder}
-  spec.description   = %q{Neri builds Windows batfile or exefile from Ruby script.}
+  spec.summary       = "One-Click Ruby Application Builder"
+  spec.description   = "Neri builds Windows batfile or exefile from Ruby script."
   spec.homepage      = "https://github.com/nodai2hITC/neri"
   spec.license       = "MIT"
   spec.required_ruby_version = ">= 2.4.0"

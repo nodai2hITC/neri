@@ -5,12 +5,9 @@ require "ayame" unless defined? Ayame
 module Neri
   module Ayame
     def new(filename)
-      if Neri.exist_in_datafile?(filename)
-        ayame = load_from_memory(Neri.file_read(filename))
-        return ayame
-      else
-        return super
-      end
+      return super unless Neri.exist_in_datafile?(filename)
+
+      load_from_memory(Neri.file_read(filename))
     end
   end
 end
