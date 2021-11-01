@@ -714,13 +714,14 @@ END
       nsystem(%[windres -o "#{o_file}" "#{rc_file}"])
       nsystem(%[gcc#{options[:b2ec][:invisible] ? " -mwindows" : ""} -o "#{exe_file}" "#{c_file}" "#{o_file}"])
       nsystem(%[strip "#{exe_file}"])
-      File.delete(c_file, rc_file, o_file)
+     # File.delete(c_file, rc_file, o_file)
     end
     
     def ruby_command(path)
       system_dir = "#{path}#{File.join(options[:system_dir], "")}"
       ruby_code = ""
       ruby_code = "Neri.key='#{@encryption_key}';" if @encryption_key
+      ruby_code += "Neri.exe_filepath=#{unpack_filename(Dir.getwd)};"
       if options[:datafile]
         ruby_code += "Neri.datafile='#{system_dir}' + #{unpack_filename(options[:datafile])};"
         ruby_code += "load #{unpack_filename(File.basename(scriptfile))}"

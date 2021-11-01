@@ -59,6 +59,14 @@ module Neri
     
     def load(file, priv = false)
       filepath = nil
+      #ファイルパス結合後に.datファイル内に所望のデータが無いか確認する
+      #ないなら今まで通りの処理で、データがあるなら文字列を結合して返す
+      if Neri.get_filepath!=nil && !exist_in_datafile?(file).instance_of?(TrueClass)
+        file2=Neri.get_filepath.join(file).to_s
+      else
+        file2=file
+      end
+
       (load_path + [""]).each do |path|
         filepath = path + file if exist_in_datafile?(path + file)
       end
@@ -81,6 +89,13 @@ module Neri
     
     def file_read(filename, encoding = Encoding::BINARY)
       str = nil
+      #ファイルパス結合後に.datファイル内に所望のデータが無いか確認する
+      #ないなら今まで通りの処理で、データがあるなら文字列を結合して返す
+      if Neri.get_filepath!=nil && !exist_in_datafile?(filename).instance_of?(TrueClass)
+        filename2=Pathname(Neri.get_filepath).join(filename).to_s
+      else
+        filename2=filename
+      end
       if exist_in_datafile?(filename)
         length, offset = @files[adjust_path(filename.encode(Encoding::UTF_8))]
         str = read(length, offset)
@@ -98,7 +113,15 @@ module Neri
     def exist_in_datafile?(filename)
       return @files.has_key?(adjust_path(filename.encode(Encoding::UTF_8)))
     end
-    
+
+    #実行時のexeファイルをpahtnanmeに変換して保存
+    def exe_filepath=(exe_file_path)
+      @exe_filepath=Pathname(exe_file_path)
+    end
+    #パスネームを返す
+    def get_filepath
+      @exe_filepath
+    end      
     private
     
     def xor(str)
