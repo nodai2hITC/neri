@@ -528,9 +528,6 @@ options:
     end
 
     def create_datafile
-      if @data_files.size > 1 || options[:encryption_key]
-        options[:datafile] ||= "#{basename}.dat"
-      end
       return unless options[:datafile]
 
       nputs "Creating datafile '#{datafile}'."
@@ -546,9 +543,12 @@ options:
       File.open(datafile, "wb") do |f|
         pos = 0
         files_str = data_files.map { |file|
-          filename = File.expand_path(file)
-          filename = relative_path(filename, rubydir, "*neri*#{File::SEPARATOR}")
-          filename = relative_path(filename, Dir.pwd)
+          fullpath = File.expand_path(file)
+          filename = if fullpath.start_with?(rubydir)
+                       relative_path(fullpath, rubydir, "*neri*#{File::SEPARATOR}")
+                     else
+                       file
+                     end
           filedata = [filename, File.size(file), pos]
           pos += File.size(file)
           pos += BLOCK_LENGTH - pos % BLOCK_LENGTH unless pos % BLOCK_LENGTH == 0
