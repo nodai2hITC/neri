@@ -535,6 +535,7 @@ options:
       @data_files.select { |file| File.directory? file }.each do |dir|
         data_files += Dir.glob("#{dir}/**/*").select { |file| File.file? file }
       end
+      data_files = data_files.reverse.uniq { |file| File.expand_path(file) }
       if options[:encryption_key]
         require "digest/sha2"
         @encryption_key = Digest::SHA2.hexdigest(options[:encryption_key])
@@ -549,11 +550,15 @@ options:
                      else
                        file
                      end
-          filedata = [filename, File.size(file), pos]
+          filedata = [filename, File.size(file), pos].join("\t")
+          nputs_v "  - #{filename}:#{File.size(file)} bytes"
+          if File.expand_path(filename).start_with?(Dir.pwd) && filename.include?("..")
+            cd_path = ".#{File.expand_path(filename).delete_prefix(Dir.pwd)}"
+            filedata += "\n" + [cd_path, File.size(file), pos].join("\t")
+          end
           pos += File.size(file)
           pos += BLOCK_LENGTH - pos % BLOCK_LENGTH unless pos % BLOCK_LENGTH == 0
-          nputs_v "  - #{filename}:#{File.size(file)} bytes"
-          filedata.join("\t")
+          filedata
         }.join("\n").encode(Encoding::UTF_8)
 
         f.write(format("%#{BLOCK_LENGTH}d", files_str.bytesize))
