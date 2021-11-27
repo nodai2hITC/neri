@@ -155,6 +155,7 @@ options:
 
   --create-recipe <recipefile>
   --recipe <recipefile>
+  --virtual-path-name　<string>
       HELP_MESSAGE
     end
 
@@ -292,6 +293,9 @@ options:
           filename = ARGV.shift.encode("utf-8")
           nputs_v "Loading recipe_file '#{filename}'."
           load File.expand_path(filename)
+          #バーチャルパスネームを引き数に追加
+        when "--virtual-path-name"
+          options[:virtual_path_name] = ARGV.shift.encode("utf-8")
         when "--"
           break
         when /^(--.+)/
@@ -501,7 +505,7 @@ options:
 
       dependencies.uniq
     end
-
+    #ファイルを読み込むときに呼び出すファイル
     def copy_files(dependencies)
       nputs "Copying dependencies."
       require "fileutils"
@@ -532,25 +536,41 @@ options:
 
       nputs "Creating datafile '#{datafile}'."
       data_files = @data_files.select { |file| File.file? file }
+
+      virtual_file_path=[]
+      #ファイルパスを長い方から取得
+      Pathname.new(Dir.pwd).ascend {|v|
+        virtual_file_path<< v.to_s
+      }
+      #指定したファイルをすべて取得
       @data_files.select { |file| File.directory? file }.each do |dir|
         data_files += Dir.glob("#{dir}/**/*").select { |file| File.file? file }
       end
+      #同じファイルを削除
       data_files = data_files.reverse.uniq { |file| File.expand_path(file) }
+      #暗号化をする
       if options[:encryption_key]
         require "digest/sha2"
         @encryption_key = Digest::SHA2.hexdigest(options[:encryption_key])
       end
+
       Neri.key = @encryption_key || "0" * 64
+      #データを開く
       File.open(datafile, "wb") do |f|
         pos = 0
         files_str = data_files.map { |file|
+          #フルパスを取得
           fullpath = File.expand_path(file)
+          #ファイルパスがフルパスなら相対パスに変更
+          #そうでないなら元のパスに戻す?
           filename = if fullpath.start_with?(rubydir)
                        relative_path(fullpath, rubydir, "*neri*#{File::SEPARATOR}")
                      else
                        file
                      end
+          #ファイルのデータを取得
           filedata = [filename, File.size(file), pos].join("\t")
+          #メッセージを出す
           nputs_v "  - #{filename}:#{File.size(file)} bytes"
           if File.expand_path(filename).start_with?(Dir.pwd) && filename.include?("..")
             cd_path = ".#{File.expand_path(filename).delete_prefix(Dir.pwd)}"
