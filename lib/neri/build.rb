@@ -304,6 +304,7 @@ options:
           exit
         else
           @data_files.push(arg.encode("utf-8"))
+          
         end
       end
 
@@ -324,6 +325,12 @@ options:
       if @data_files.size > 1 || options[:encryption_key]
         options[:datafile] ||= "#{basename}.dat"
       end
+      data_files_tmp = @data_files.map do |data|
+        (Pathname.getwd+data).to_s.encode(Encoding::UTF_8)
+      end
+      @data_files=data_files_tmp
+      p "-----------------------------------"
+      p  @data_files
     end
 
     # check dependencies
@@ -537,17 +544,38 @@ options:
       nputs "Creating datafile '#{datafile}'."
       data_files = @data_files.select { |file| File.file? file }
 
-      virtual_file_path=[]
-      #ファイルパスを長い方から取得
-      Pathname.new(Dir.pwd).ascend {|v|
-        virtual_file_path<< v.to_s
-      }
-      #指定したファイルをすべて取得
+      
+      
+      #指定したファイルをすべて取得 get file
       @data_files.select { |file| File.directory? file }.each do |dir|
         data_files += Dir.glob("#{dir}/**/*").select { |file| File.file? file }
       end
-      #同じファイルを削除
+
+      #同じファイルを削除 delet same file
       data_files = data_files.reverse.uniq { |file| File.expand_path(file) }
+      virtual_file_path=[]
+      #ファイルパスを長い方から取得 get file paths 
+      Pathname.new(Dir.pwd).ascend {|v|
+        virtual_file_path<< v.to_s
+      }
+      nputs "Calcurating virtual file path."
+      data_files.each{|f| 
+        if !f.start_with?(rubydir)
+          for i in 0...virtual_file_path.size
+            if !f.start_with?(virtual_file_path[0])
+              virtual_file_path.delete_at(0)
+             
+            else
+              break
+            end 
+          end
+        end
+      }
+
+
+      #virtual_file_path[0]がバーチャルパスで置き換えるべきパスになる
+      #we replace virtual_file_path[0]　to neri_virtual_path
+
       #暗号化をする
       if options[:encryption_key]
         require "digest/sha2"
@@ -561,13 +589,18 @@ options:
         files_str = data_files.map { |file|
           #フルパスを取得
           fullpath = File.expand_path(file)
+           
+          nputs virtual_file_path[0]
           #ファイルパスがフルパスなら相対パスに変更
           #そうでないなら元のパスに戻す?
           filename = if fullpath.start_with?(rubydir)
-                       relative_path(fullpath, rubydir, "*neri*#{File::SEPARATOR}")
+                      #ライブラリとかをdatにかきこむために
+                      relative_path(fullpath, rubydir, "*neri*#{File::SEPARATOR}")
                      else
-                       file
+                      fullpath.sub(/#{virtual_file_path[0]}/,options[:virtual_path_name])
+
                      end
+        p filename
           #ファイルのデータを取得
           filedata = [filename, File.size(file), pos].join("\t")
           #メッセージを出す
@@ -587,10 +620,13 @@ options:
           f.write(xor(File.binread(file)))
         end
       end
+      #仮想パスを保存
+      @virtual_path=virtual_file_path[0]
     end
 
     def create_batfile
       nputs "Creating batch_file '#{basepath}.bat'."
+      virtual_path_and_src_path=Dir.pwd.sub(/#{@virtual_path}/,options[:virtual_path_name])
 
       pause_command = ""
       if options[:pause_last]
@@ -610,6 +646,8 @@ options:
 setlocal
 set PATH=%~dp0#{options[:system_dir]}\\#{relative_path(bindir)};%PATH%
 set NERI_EXECUTABLE=%~0
+set #{options[:virtual_path_name]}=#{virtual_path_and_src_path}/
+
 #{chdir}
 if %~x0 == .exe ( shift )
 #{ruby_command(options[:chdir_first] ? '' : '%~dp0')} %1 %2 %3 %4 %5 %6 %7 %8 %9
@@ -736,9 +774,12 @@ END
     end
 
     def ruby_command(path)
+      #ネリの実質パスをついか
       system_dir = "#{path}#{File.join(options[:system_dir], '')}"
       ruby_code = ""
       ruby_code = "Neri.key='#{@encryption_key}';" if @encryption_key
+      #ruby_code = "ENV['Neri_virtual_path']='#{virtual_path_and_src_path}/'; "#NERIのバーチャルパスをexeとかについか
+
       if options[:datafile]
         ruby_code += "Neri.datafile='#{system_dir}' + #{unpack_filename(options[:datafile])};"
         ruby_code += "load #{unpack_filename(File.basename(scriptfile))}"
@@ -867,6 +908,7 @@ END
     end
 
     def run
+      options[:virtual_path_name]="Neri_virtual_path" if  options[:virtual_path_name]==nil
       check_options
       dependencies = check_dependencies
       copy_files(dependencies)

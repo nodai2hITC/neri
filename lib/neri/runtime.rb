@@ -1,5 +1,5 @@
 require "neri/version"
-
+require "pathname"
 alias _neri_orig_require require
 alias _neri_orig_load    load
 
@@ -22,6 +22,7 @@ module Neri
 
   class << self
     def datafile=(datafile)
+      
       @datafile = datafile.encode(Encoding::UTF_8)
       @system_dir = File.dirname(File.expand_path(@datafile)) + File::SEPARATOR
       files_length = File.binread(@datafile, BLOCK_LENGTH).to_i
@@ -33,43 +34,40 @@ module Neri
         filename, length, offset = line.split("\t")
         @files[filename] = [length.to_i, offset.to_i + pos]
       end
+
       @current_directory = nil
     end
 
     def key=(key)
       @xor = key.scan(/../).map { |a| a.to_i(16) }.pack("c*")
     end
-
     def require(feature)
       feature = feature.encode(Encoding::UTF_8)
       filepath = nil
-      (feature.start_with?(/[a-z]:/i, "\\", "/", ".") ? [""] : load_path).each do |path|
-        ["", ".rb"].each do |ext|
-          tmp_path = path + feature + ext
-          filepath ||= tmp_path if exist_in_datafile?(tmp_path)
-        end
+      if exist_in_datafile?(feature) or !ENV['Neri_virtual_path']
+        filepath=feature
+      else
+        filepath=Pathname(ENV['Neri_virtual_path']+feature).cleanpath.to_s.sub(%r{\./},"")
       end
-
-      return _neri_orig_require(feature) unless filepath
+      return _neri_orig_require(feature) unless exist_in_datafile?(filepath)
       return false if $LOADED_FEATURES.index(filepath)
 
-      code = load_code(filepath)
+      code = load_code(feature)
       eval(code, TOPLEVEL_BINDING, filepath)
       $LOADED_FEATURES.push(filepath)
       true
     end
-
     def load(file, priv = false)
       file = file.encode(Encoding::UTF_8)
       filepath = nil
-      paths = file.start_with?(/[a-z]:/i, "\\", "/", ".") ? [""] : load_path + [""]
-      paths.each do |path|
-        filepath ||= path + file if exist_in_datafile?(path + file)
+      if exist_in_datafile?(file) or !ENV['Neri_virtual_path']
+        filepath=file
+      else
+        filepath=Pathname(ENV['Neri_virtual_path']+file).cleanpath.to_s.sub(%r{\./},"")
       end
+      return _neri_orig_load(file, priv) unless exist_in_datafile?(filepath)
 
-      return _neri_orig_load(file, priv) unless filepath
-
-      code = load_code(filepath)
+      code = load_code(file)
       if priv
         Module.new.module_eval(code, filepath)
       else
@@ -83,14 +81,18 @@ module Neri
     end
 
     def file_read(filename, encoding = Encoding::BINARY)
+ 
       filename = filename.encode(Encoding::UTF_8)
+      filepath=Pathname(ENV['Neri_virtual_path']+filename).cleanpath.to_s.sub(%r{\./},"")
       str = nil
-      if exist_in_datafile?(filename)
-        length, offset = fullpath_files[File.expand_path(filename)]
+      if exist_in_datafile?(filepath)
+
+        length, offset = fullpath_files[File.expand_path(filepath)]
         str = read(length, offset)
       else
         str = File.binread(filename)
       end
+      #p filename
       str.force_encoding(encoding)
     end
 
@@ -99,7 +101,8 @@ module Neri
     end
 
     def exist_in_datafile?(filename)
-      fullpath_files.key?(File.expand_path(filename.encode(Encoding::UTF_8)))
+      filepath=Pathname(filename).cleanpath.to_s.sub(%r{\./},"") 
+      return @files.has_key?(adjust_path(filepath.encode(Encoding::UTF_8)))
     end
 
     private
@@ -111,7 +114,9 @@ module Neri
       end
       @fullpath_files
     end
-
+    def adjust_path(path)
+      return path.sub(/^\.\//, "")
+    end
     def xor(str)
       str.force_encoding(Encoding::BINARY)
       str << rand(256).chr while str.bytesize % BLOCK_LENGTH != 0
@@ -139,7 +144,8 @@ module Neri
     end
 
     def load_code(file)
-      code = file_read(file)
+
+      code = file_read(file)      
       encoding = "UTF-8"
       encoding = Regexp.last_match(1) if code.lines[0..2].join("\n").match(/coding:\s*(\S+)/)
       code.force_encoding(encoding)

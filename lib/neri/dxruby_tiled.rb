@@ -7,7 +7,7 @@ module DXRuby
     module_function
 
     def read_file(file, encoding = Encoding::UTF_8)
-      Neri.file_read(file, encoding)
+      Neri.file_read(ENV['Neri_virtual_path']+file, encoding)
     end
   end
 end

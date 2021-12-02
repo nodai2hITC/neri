@@ -5,8 +5,9 @@ require "dxruby" unless defined? DXRuby
 module Neri
   module DXRubyImage
     def load(path, x = nil, y = nil, width = nil, height = nil)
-      return super unless Neri.exist_in_datafile?(path)
 
+      filepath=Pathname(ENV['Neri_virtual_path']+path).cleanpath.to_s.sub(%r{\./},"")
+      return super unless Neri.exist_in_datafile?(filepath)
       image = load_from_file_in_memory(Neri.file_read(path))
       image = image.slice(x, y, width, height) if x && y && width && height
       image
@@ -22,9 +23,8 @@ module Neri
 
   module DXRubySound
     def new(path)
-      return super unless Neri.exist_in_datafile?(path)
-
-      load_from_memory(Neri.file_read(path),
+      return super unless Neri.exist_in_datafile?((ENV['Neri_virtual_path']+path))
+      load_from_memory(Neri.file_read(+path),
                        File.extname(path) == ".mid" ? DXRuby::TYPE_MIDI : DXRuby::TYPE_WAV)
     end
   end
@@ -43,3 +43,4 @@ module DXRuby
     end
   end
 end
+"Neri_virtual_path/picture/exprode/1.png"
