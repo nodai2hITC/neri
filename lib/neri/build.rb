@@ -590,7 +590,7 @@ options:
           #フルパスを取得
           fullpath = File.expand_path(file)
            
-          nputs virtual_file_path[0]
+         
           #ファイルパスがフルパスなら相対パスに変更
           #そうでないなら元のパスに戻す?
           filename = if fullpath.start_with?(rubydir)
