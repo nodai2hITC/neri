@@ -1,14 +1,23 @@
 require "neri/version"
 
-alias _neri_orig_require require
-alias _neri_orig_load    load
+module Kernel
+  unless defined?(neri_original_require)
+    alias    neri_original_require require
+    private :neri_original_require
+  end
 
-def require(feature)
-  Neri.require(feature)
-end
+  unless defined?(neri_original_load)
+    alias    neri_original_load load
+    private :neri_original_load
+  end
 
-def load(file, priv = false)
-  Neri.load(file, priv)
+  def require(feature)
+    Neri.require(feature)
+  end
+
+  def load(file, priv = false)
+    Neri.load(file, priv)
+  end
 end
 
 module Neri
@@ -50,7 +59,7 @@ module Neri
         end
       end
 
-      return _neri_orig_require(feature) unless filepath
+      return neri_original_require(feature) unless filepath
       return false if $LOADED_FEATURES.index(filepath)
 
       code = load_code(filepath)
@@ -67,7 +76,7 @@ module Neri
         filepath ||= path + file if exist_in_datafile?(path + file)
       end
 
-      return _neri_orig_load(file, priv) unless filepath
+      return neri_original_load(file, priv) unless filepath
 
       code = load_code(filepath)
       if priv
