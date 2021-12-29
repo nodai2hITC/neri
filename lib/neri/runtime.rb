@@ -1,4 +1,5 @@
 require "neri/version"
+require "pathname"
 
 module Kernel
   unless defined?(neri_original_require)
@@ -23,66 +24,68 @@ end
 module Neri
   BLOCK_LENGTH = 32
   @datafile = nil
-  @system_dir = nil
-  @files = {}
-  @fullpath_files = nil
-  @current_directory = nil
+  @file_informations = {}
+  @fullpath_files = {}
+  @virtual_files = {}
+  @virtual_directory = "."
   @xor = nil
 
   class << self
     def datafile=(datafile)
       @datafile = datafile.encode(Encoding::UTF_8)
-      @system_dir = File.dirname(File.expand_path(@datafile)) + File::SEPARATOR
       files_length = File.binread(@datafile, BLOCK_LENGTH).to_i
       files_str = read(files_length, BLOCK_LENGTH)
       pos = files_length + BLOCK_LENGTH
       pos += BLOCK_LENGTH - pos % BLOCK_LENGTH unless pos % BLOCK_LENGTH == 0
       files_str.force_encoding(Encoding::UTF_8)
-      files_str.split("\n").each do |line|
+      files_str.each_line do |line|
         filename, length, offset = line.split("\t")
-        @files[filename] = [length.to_i, offset.to_i + pos]
+        @file_informations[filename] = [length.to_i, offset.to_i + pos]
       end
-      @current_directory = nil
+      @fullpath_files = @file_informations.transform_keys { |k| File.expand_path(k) }
     end
 
     def key=(key)
-      @xor = key.scan(/../).map { |a| a.to_i(16) }.pack("c*")
+      @xor ||= key.scan(/../).map { |a| a.to_i(16) }.pack("c*")
+    end
+
+    def virtual_directory=(path)
+      @virtual_directory = path
+      @virtual_files = @file_informations.transform_keys { |k| File.expand_path(k, path) }
     end
 
     def require(feature)
-      feature = feature.encode(Encoding::UTF_8)
-      filepath = nil
-      (feature.start_with?(/[a-z]:/i, "\\", "/", ".") ? [""] : load_path).each do |path|
-        ["", ".rb"].each do |ext|
-          tmp_path = path + feature + ext
-          filepath ||= tmp_path if exist_in_datafile?(tmp_path)
-        end
-      end
+      feature_path = Pathname.new(feature.encode(Encoding::UTF_8))
+      feature_path = feature_path.sub_ext(".rb") if feature_path.extname == ""
+      return neri_original_require(feature) if feature_path.extname == ".so"
 
-      return neri_original_require(feature) unless filepath
-      return false if $LOADED_FEATURES.index(filepath)
+      path_str = if feature_path.absolute? || feature.start_with?(".")
+                   path_in_datafile(feature_path)
+                 else
+                   search_in_load_path(feature_path)
+                 end
 
-      code = load_code(filepath)
-      eval(code, TOPLEVEL_BINDING, filepath)
-      $LOADED_FEATURES.push(filepath)
+      return neri_original_require(feature) unless path_str
+      return false if $LOADED_FEATURES.index(path_str)
+
+      code = load_code(path_str)
+      eval(code, TOPLEVEL_BINDING, path_str)
+      $LOADED_FEATURES.push(path_str)
       true
     end
 
     def load(file, priv = false)
-      file = file.encode(Encoding::UTF_8)
-      filepath = nil
-      paths = file.start_with?(/[a-z]:/i, "\\", "/", ".") ? [""] : load_path + [""]
-      paths.each do |path|
-        filepath ||= path + file if exist_in_datafile?(path + file)
-      end
+      file_path = Pathname.new(file.encode(Encoding::UTF_8))
+      path_str = search_in_load_path(file_path) if file_path.relative? && !file.start_with?(".")
+      path_str ||= path_in_datafile(file_path)
 
-      return neri_original_load(file, priv) unless filepath
+      return neri_original_load(file, priv) unless path_str
 
-      code = load_code(filepath)
+      code = load_code(path_str)
       if priv
-        Module.new.module_eval(code, filepath)
+        Module.new.module_eval(code, path_str)
       else
-        eval(code, TOPLEVEL_BINDING, filepath)
+        eval(code, TOPLEVEL_BINDING, path_str)
       end
       true
     end
@@ -93,32 +96,26 @@ module Neri
 
     def file_read(filename, encoding = Encoding::BINARY)
       filename = filename.encode(Encoding::UTF_8)
-      str = nil
-      if exist_in_datafile?(filename)
-        length, offset = fullpath_files[File.expand_path(filename)]
-        str = read(length, offset)
-      else
-        str = File.binread(filename)
-      end
+      length, offset = file_information(filename)
+      str = length ? read(length, offset) : File.binread(filename)
       str.force_encoding(encoding)
     end
 
     def files
-      @files.keys
+      @file_informations.keys
     end
 
     def exist_in_datafile?(filename)
-      fullpath_files.key?(File.expand_path(filename.encode(Encoding::UTF_8)))
+      file_information(filename) != nil
     end
 
     private
 
-    def fullpath_files
-      if @current_directory != Dir.pwd
-        @current_directory = Dir.pwd
-        @fullpath_files = @files.transform_keys { |k| File.expand_path(k) }
-      end
-      @fullpath_files
+    def file_information(filename)
+      fullpath = File.expand_path(filename)
+      return @fullpath_files[fullpath] if @fullpath_files.key?(fullpath)
+
+      @virtual_files[File.expand_path(filename, @virtual_directory)]
     end
 
     def xor(str)
@@ -140,11 +137,21 @@ module Neri
       xor(File.binread(@datafile, tmp_length, offset))[0, length]
     end
 
-    def load_path
-      paths = $LOAD_PATH.map { |path| path.encode(Encoding::UTF_8) }
-      return paths unless @system_dir
+    def search_in_load_path(file_path)
+      $LOAD_PATH.each do |path_str|
+        load_path = Pathname.new(path_str.encode(Encoding::UTF_8))
+        candidate_path_str = path_in_datafile(load_path + file_path)
+        return candidate_path_str if candidate_path_str
+      end
+      nil
+    end
 
-      paths.map { |path| path.sub(@system_dir, "*neri*#{File::SEPARATOR}") + File::SEPARATOR }
+    def path_in_datafile(file_path)
+      fullpath = File.expand_path(file_path.to_s)
+      return fullpath if exist_in_datafile?(fullpath)
+
+      virtual_path = File.expand_path(file_path.to_s, @virtual_directory)
+      exist_in_datafile?(virtual_path) ? virtual_path : nil
     end
 
     def load_code(file)
