@@ -578,7 +578,7 @@ options:
           next if fullpath.start_with?(rubydir) || Pathname.new(file).absolute?
           virtual_directories.shift until fullpath.start_with?(virtual_directories.first)
         end
-        options[:virtual_directory] = relative_path(dir_pwd, virtual_directories.first, "/*neri*/")
+        options[:virtual_directory] = relative_path(dir_pwd, virtual_directories.first, "/_neri_virtual_directory_/")
         puts "virtual_directory: #{options[:virtual_directory]}"
       end
 
