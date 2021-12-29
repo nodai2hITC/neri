@@ -579,7 +579,7 @@ options:
           virtual_directories.shift until fullpath.start_with?(virtual_directories.first)
         end
         options[:virtual_directory] = relative_path(dir_pwd, virtual_directories.first, "/_neri_virtual_directory_/")
-        puts "virtual_directory: #{options[:virtual_directory]}"
+        nputs "virtual_directory: #{options[:virtual_directory]}"
       end
 
       if options[:encryption_key]
