@@ -18,7 +18,7 @@ module Neri
 
     enable_gems:         false,
     enable_did_you_mean: false,
-    chdir_first:         false,
+    chdir_first:         true,
     pause_last:          nil,
     pause_text:          nil,
 
@@ -112,7 +112,7 @@ options:
 
   --enable-gems
   --enable-did-you-mean
-  --chdir-first
+  --no-chdir
   --pause-last
   --no-pause-last
   --pause-text <text>
@@ -211,7 +211,9 @@ options:
           options[:enable_gems] = true
         when "--enable-did-you-mean"
           options[:enable_did_you_mean] = true
-        when "--chdir-first"
+        when "--no-chdir"
+          options[:chdir_first] = false
+        when "--chdir-first" # deprecated
           options[:chdir_first] = true
         when "--pause-last"
           options[:pause_last] = true
@@ -332,27 +334,54 @@ options:
     end
 
     def dll_dependencies
-      require "Win32API"
+      require "fiddle/import"
 
-      enumprocessmodules = Win32API.new("psapi"   , "EnumProcessModules", ["L","P","L","P"], "L")
-      getmodulefilename  = Win32API.new("kernel32", "GetModuleFileNameW", ["L","P","L"], "L")
-      getcurrentprocess  = Win32API.new("kernel32", "GetCurrentProcess" , [], "L")
-
+      pointer_type = Fiddle::SIZEOF_VOIDP == Fiddle::SIZEOF_LONG_LONG ? 'q*' : 'l!*'
+      psapi    = Fiddle.dlopen("psapi.dll")
+      kernel32 = Fiddle.dlopen("kernel32.dll")
+      enumprocessmodules = Fiddle::Function.new(
+        psapi["EnumProcessModules"],
+        [Fiddle::TYPE_LONG, Fiddle::TYPE_VOIDP, Fiddle::TYPE_LONG, Fiddle::TYPE_VOIDP],
+        Fiddle::TYPE_LONG,
+        Fiddle::Importer.const_get(:CALL_TYPE_TO_ABI)[:stdcall]
+      )
+      getmodulefilename = Fiddle::Function.new(
+        kernel32["GetModuleFileNameW"],
+        [Fiddle::TYPE_LONG, Fiddle::TYPE_VOIDP, Fiddle::TYPE_LONG],
+        Fiddle::TYPE_LONG,
+        Fiddle::Importer.const_get(:CALL_TYPE_TO_ABI)[:stdcall]
+      )
+      getcurrentprocess = Fiddle::Function.new(
+        kernel32["GetCurrentProcess"],
+        [],
+        Fiddle::TYPE_LONG,
+        Fiddle::Importer.const_get(:CALL_TYPE_TO_ABI)[:stdcall]
+      )
+      
       bytes_needed = 4 * 32
       module_handle_buffer = nil
       process_handle = getcurrentprocess.call
       loop do
         module_handle_buffer = "\x00" * bytes_needed
         bytes_needed_buffer = [0].pack("I")
-        enumprocessmodules.call(process_handle, module_handle_buffer, module_handle_buffer.size, bytes_needed_buffer)
+        enumprocessmodules.call(
+          [process_handle].pack("I").unpack1("i"),
+          [module_handle_buffer].pack("p").unpack1(pointer_type),
+          [module_handle_buffer.size].pack("I").unpack1("i"),
+          [bytes_needed_buffer].pack("p").unpack1(pointer_type)
+        )
         bytes_needed = bytes_needed_buffer.unpack1("I")
         break if bytes_needed <= module_handle_buffer.size
       end
-
+      
       handles = module_handle_buffer.unpack("I*")
       dependencies = handles.select { |handle| handle > 0 }.map do |handle|
         str = "\x00\x00" * 256
-        modulefilename_length = getmodulefilename.call(handle, str, str.size)
+        modulefilename_length = getmodulefilename.call(
+          [handle].pack("I").unpack1("i"),
+          [str].pack("p").unpack1(pointer_type),
+          [str.size].pack("I").unpack1("i")
+        )
         str[0, modulefilename_length * 2].force_encoding("UTF-16LE").encode("UTF-8")
       end
 
