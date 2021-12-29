@@ -323,6 +323,7 @@ options:
       unless options[:enable_did_you_mean] || @rubyopt.index("--disable-did_you_mean")
         @rubyopt += " --disable-did_you_mean"
       end
+      @rubyopt.sub!(%r{-r\S+/bundler/setup}, "")
       if @data_files.size > 1 || options[:encryption_key]
         options[:datafile] ||= "#{basename}.dat"
       end
