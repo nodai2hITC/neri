@@ -7,7 +7,6 @@ module Neri
 
   @options = {
     quiet:   false,
-    verbose: false,
 
     external_encoding: nil,
 
@@ -30,8 +29,6 @@ module Neri
     virtual_directory: nil,
 
     no_exe: false,
-    use_b2ec: false,
-    b2ec_path: "Bat_To_Exe_Converter",
     b2ec: {
       icon: File.expand_path("#{File.dirname(__FILE__)}/../../share/default.ico"),
       invisible:        nil,
@@ -49,18 +46,7 @@ module Neri
       privatebuild:     nil,
       specialbuild:     nil,
       comments:         nil
-    },
-
-    use_upx:     false,
-    upx_path:    "upx",
-    upx_targets: ["bin/**/*.dll"],
-    upx_options: "",
-
-    zipfile:       nil,
-    sevenzip_path: "7z",
-
-    inno_script: nil,
-    iscc_path:   "iscc"
+    }
   }
   @rubyopt = ENV["RUBYOPT"].to_s
   @args = ""
@@ -99,7 +85,6 @@ options:
   --help or -h
   --version or -v
   --quiet
-  --verbose
 
   --external-encoding <encoding>
 
@@ -121,15 +106,12 @@ options:
   --system-dir <dirname>
   --datafile <filename>
   --encryption-key <key>
+  --virtual-directory <string>
 
   --no-exe
-  --use-b2ec
-  --b2ec-path <bat_to_exe_converter_path>
   --icon <iconfile>
   --windows or --invisible
   --console or --visible
-  --x64
-  --uac-admin
   --fileversion <string>     # ex) 1,2,3,4
   --productversion <string>  # ex) 1,2,3,4
   --productname <string>
@@ -142,21 +124,6 @@ options:
   --privatebuild <string>
   --specialbuild <string>
   --comments <string>
-
-  --use-upx
-  --upx-path <upx path>
-  --upx_targets '<glob>'  # ex) 'bin/**/*.dll'
-  --upx-options <options>
-
-  --zipfile <filename>
-  --7zip-path <7-zip path>
-
-  --innosetup <inno_script>
-  --iscc-path <iscc path>
-
-  --create-recipe <recipefile>
-  --recipe <recipefile>
-  --virtual-directory <string>
       HELP_MESSAGE
     end
 
@@ -165,24 +132,7 @@ options:
       puts "Neri #{Neri::VERSION}"
     end
 
-    # --create-recipe
-    def create_recipe(file, hash = options, pre = "Neri.options")
-      hash.each_pair do |key, value|
-        case value
-        when Hash
-          create_recipe(file, value, pre + "[:#{key}]")
-        when Numeric, TrueClass, FalseClass
-          file.puts "#{pre}[:#{key}] = #{value}"
-        when NilClass
-          file.puts "#{pre}[:#{key}] = nil"
-        when String, Array
-          file.puts "#{pre}[:#{key}] = " + JSON.generate(value)
-        end
-      end
-    end
-
     def check_options
-      nputs_v "Checking Neri options."
       while arg = ARGV.shift
         case arg
         when "--help", "-h"
@@ -193,8 +143,6 @@ options:
           exit
         when "--quiet", "-q"
           options[:quiet] = true
-        when "--verbose"
-          options[:verbose] = true
         when "--external_encoding"
           options[:external_encoding] = ARGV.shift
         when "--dll"
@@ -230,22 +178,16 @@ options:
           options[:datafile] = ARGV.shift.encode("utf-8")
         when "--encryption-key"
           options[:encryption_key] = ARGV.shift.encode("utf-8")
+        when "--virtual-directory"
+          options[:virtual_directory] = ARGV.shift.encode("utf-8")
         when "--no-exe"
           options[:no_exe] = true
-        when "--use-b2ec"
-          options[:use_b2ec] = true
-        when "--b2ec-path"
-          options[:b2ec_path] = ARGV.shift.encode("utf-8")
         when "--icon"
           options[:b2ec][:icon] = ARGV.shift.encode("utf-8")
         when "--windows", "--invisible"
           options[:b2ec][:invisible] = true
         when "--console", "--visible"
           options[:b2ec][:invisible] = false
-        when "--x64"
-          options[:b2ec][:x64] = true
-        when "--uac-admin"
-          options[:b2ec][:uac_admin] = true
         when "--fileversion"
           options[:b2ec][:fileversion] = ARGV.shift
         when "--productversion"
@@ -270,34 +212,6 @@ options:
           options[:b2ec][:specialbuild] = ARGV.shift.encode("utf-8")
         when "--comments"
           options[:b2ec][:comments] = ARGV.shift.encode("utf-8")
-        when "--use-upx"
-          options[:use_upx] = true
-        when "--upx-path"
-          options[:upx_path] = ARGV.shift.encode("utf-8")
-        when "--upx-targets"
-          options[:upx_targets] += ARGV.shift.split(",").map(&:strip)
-        when "--upx-options"
-          options[:upx_options] = ARGV.shift
-        when "--zipfile"
-          options[:zipfile] = "#{ARGV.shift.encode('utf-8').sub(/\.zip$/, '')}.zip"
-        when "--7zip-path"
-          options[:sevenzip_path] = ARGV.shift.encode("utf-8")
-        when "--innosetup"
-          options[:inno_script] = ARGV.shift.encode("utf-8")
-        when "--iscc-path"
-          options[:iscc_path] = ARGV.shift.encode("utf-8")
-        when "--create-recipe"
-          require "json"
-          filename = ARGV.shift.encode("utf-8")
-          nputs "Creating recipe_file '#{filename}'."
-          File.open(filename, "w:utf-8") { |file| create_recipe(file) }
-          exit
-        when "--recipe"
-          filename = ARGV.shift.encode("utf-8")
-          nputs_v "Loading recipe_file '#{filename}'."
-          load File.expand_path(filename)
-        when "--virtual-directory"
-          options[:virtual_directory] = ARGV.shift.encode("utf-8")
         when "--"
           break
         when /^(--.+)/
@@ -502,11 +416,6 @@ options:
 
       size = dependencies.map { |d| File.size(d) }.inject(&:+)
       nputs "#{dependencies.size} files, #{size} bytes dependencies."
-      if options[:verbose]
-        dependencies.each do |dependency|
-          nputs_v "  - #{dependency}"
-        end
-      end
 
       dependencies
     end
@@ -555,7 +464,6 @@ options:
         FileUtils.makedirs(File.dirname(desc))
         if File.file?(src)
           FileUtils.copy(src, desc)
-          nputs_v "  #{src}\n  -> #{desc}"
         end
       end
       FileUtils.copy(scriptfile, desc_dir) unless options[:datafile]
@@ -598,7 +506,6 @@ options:
                        file
                      end
           filedata = [filename, File.size(file), pos].join("\t")
-          nputs_v "  - #{filename}:#{File.size(file)} bytes"
           pos += File.size(file)
           pos += BLOCK_LENGTH - pos % BLOCK_LENGTH unless pos % BLOCK_LENGTH == 0
           filedata
@@ -782,130 +689,12 @@ END
       %(#{ruby}#{r} #{@rubyopt} -e "# coding:utf-8" -e "#{ruby_code}" #{@args})
     end
 
-    def bat_to_exe_converter
-      create_batfile
-      begin
-        `#{options[:b2ec_path]} /help`
-      rescue
-        error "Bat To Exe Converter not found !"
-        return
-      end
-
-      batch_file = "#{basepath}.bat"
-      exe_file   = "#{basepath}.exe"
-      nputs "Creating exe_file '#{exe_file}' with Bat To Exe Converter."
-      File.delete(exe_file) if File.exist?(exe_file)
-      if options[:b2ec][:x64].nil? && RbConfig::CONFIG["target"].to_s.index("64")
-        options[:b2ec][:x64] = true
-      end
-      args = %( /bat "#{batch_file}" /exe "#{exe_file}")
-      args += options[:b2ec].map { |key, value|
-        case value
-        when String then %( /#{key.to_s.tr('_', '-')} "#{value}")
-        when true   then %( /#{key.to_s.tr('_', '-')})
-        else;            %()
-        end
-      }.join("")
-
-      error "Failed to create exe_file !" unless nsystem "#{options[:b2ec_path]}#{args}"
-    end
-
-    def upx
-      unless system("#{options[:upx_path]} --version >nul 2>&1")
-        error "UPX not found !"
-        return
-      end
-
-      nputs "Compressing with UPX."
-      options[:upx_targets].each do |target|
-        Dir.glob(File.join(options[:output_dir], options[:system_dir], target)).each do |target_path|
-          command = %("#{options[:upx_path]}" #{options[:upx_options]} "#{target_path}")
-          nsystem command
-        end
-      end
-    end
-
-    def create_zipfile
-      unless system("#{options[:sevenzip_path]} >nul 2>&1")
-        error "7-Zip not found !"
-        return
-      end
-
-      nputs "Creating zip_file '#{options[:zipfile]}'."
-      File.delete(options[:zipfile]) if File.exist?(options[:zipfile])
-      files = []
-      if options[:output_dir] == "./"
-        files.push(options[:system_dir])
-        files.push(File.exist?("#{basepath}.exe") ? "#{basepath}.exe" : "#{basepath}.bat")
-      else
-        files.push(options[:output_dir])
-      end
-      command = %("#{options[:sevenzip_path]}" a "#{options[:zipfile]}" "#{files.join('" "')}")
-      nsystem command
-    end
-
-    def inno_setup
-      unless system("#{options[:iscc_path]} /? >nul 2>&1")
-        error("Inno Setup not found !")
-        return
-      end
-
-      filename = options[:inno_script]
-      nputs "Creating Installer '#{filename}'."
-      script = "[Setup]\n"
-      if File.exist?(filename)
-        script = File.read(filename, encoding: Encoding::UTF_8)
-        filename = "#{File.basename(filename, '.*')}_tmp#{File.extname(filename)}"
-      end
-
-      version = options[:b2ec][:productversion] || options[:b2ec][:fileversion]
-      if !script.match(/^AppName=/) && options[:b2ec][:productname]
-        script.sub!(/^(\[Setup\])(\s+)/i) { "#{$1}\nAppName=#{options[:b2ec][:productname]}#{$2}" }
-      end
-      if !script.match(/^AppVersion=/) && version
-        script.sub!(/^(\[Setup\])(\s+)/i) { "#{$1}\nAppVersion=#{version}#{$2}" }
-      end
-      if !script.match(/^AppVerName=/) && options[:b2ec][:productname] && version
-        script.sub!(/^(\[Setup\])(\s+)/i) { "#{$1}\nAppVerName=#{options[:b2ec][:productname]} #{version}#{$2}" }
-      end
-      if !script.match(/^AppPublisher=/) && options[:b2ec][:company]
-        script.sub!(/^(\[Setup\])(\s+)/i) { "#{$1}\nAppPublisher=#{options[:b2ec][:company]}#{$2}" }
-      end
-      if !script.match(/^AppCopyright=/) && options[:b2ec][:copyright]
-        script.sub!(/^(\[Setup\])(\s+)/i) { "#{$1}\nAppCopyright=#{options[:b2ec][:copyright]}#{$2}" }
-      end
-
-      script += "\n[Files]\n" unless script.match(/^\[Files\]/)
-      dir = File.expand_path(options[:output_dir])
-      files_str = ""
-      Dir.glob(File.join(dir, "**", "*")).each do |file|
-        next unless File.file? file
-
-        dist_dir = to_winpath(File::SEPARATOR + File.dirname(relative_path(file, dir)))
-        dist_dir = "" if dist_dir == "\\."
-        files_str += "\nSource: \"#{to_winpath(file)}\"; DistDir: \"{app}#{dist_dir}"
-        files_str += "; Flags: isreadme" if File.basename(file).match(/^readme/i)
-      end
-      script.sub!(/^(\[Files\])(\s*)/i) { "#{$1}#{files_str}#{$2}" }
-
-      File.write(filename, script)
-      command = %(#{options[:iscc_path]} "#{filename}")
-      nsystem command
-    end
-
     def run
       check_options
       dependencies = check_dependencies
       copy_files(dependencies)
       create_datafile
-      if options[:no_exe]
-        create_batfile
-      else
-        options[:use_b2ec] ? bat_to_exe_converter : create_exefile
-      end
-      upx             if options[:use_upx]
-      create_zipfile  if options[:zipfile]
-      inno_setup      if options[:inno_script]
+      options[:no_exe] ? create_batfile : create_exefile
       nputs "Neri Finished."
     end
 
@@ -913,10 +702,6 @@ END
 
     def nputs(str)
       puts "=== #{str}" unless options[:quiet]
-    end
-
-    def nputs_v(str)
-      puts str if options[:verbose]
     end
 
     def error(str)
@@ -932,7 +717,6 @@ END
     end
 
     def nsystem(str)
-      nputs_v(str)
       command = str.encode(options[:external_encoding])
       system(command + (options[:quiet] ? " >nul 2>&1" : ""))
     end

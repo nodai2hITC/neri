@@ -6,21 +6,21 @@ Neri は、Ruby スクリプトを Ruby 未インストール環境向けに配�
 
 - OCRA に比べての長所
   - 展開しない分、起動が速い。
-  - 実行ファイルを複数作りたいとき、OCRA ではサイズの大きな実行ファイルを複数生成することになってしまうが、Neri ではシステムファイルを共有できるので、全体のサイズが大きくならずに済む。
+  - 実行ファイルを複数作りたいとき、OCRA ではサイズの大きな実行ファイルを複数生成することになってしまうが、Neri ではシステムファイルを共有できるため全体のサイズが大きくならずに済む。
   - OCRA には「日本語を含むユーザー名の環境では起動できない」という問題があるが、Neri にはない。
-    - ただし Ruby のバージョンによっては、日本語を含むパス上では起動できない。（この点は OCRA も同様。）
 - OCRA に比べての短所
-  - exe ファイルを作成するには、次のどちらかが必要。
-    - gcc と windres（Ruby Installer 2 With Devkit を使用している場合、使用前に `ridk enable` を実行してパスを通す必要があるかもしれません。）
-    - [Bat To Exe Converter](http://www.f2ko.de/en/b2e.php) ver.3
+  - 基本的に、Ruby Installer 2 With Devkit で Ruby をインストールした環境でしか利用できない。（なお、使用前に `ridk enable` を実行してパスを通す必要があります。）
+  - あまり設定をいじらなくても正しく実行ファイルが作成できる可能性は、OCRA の方が上です。
 
 ## インストール
 
     $ gem install neri
 
-現状、bundler での使用は保証できません。
+bundler を用いた利用もできますが、その場合同梱するファイルが増えてしまうのでおすすめしません。
 
 ## 使い方
+
+まず、`ridk enable` を実行して開発環境にパスを通す必要があります。
 
     $ neri [options] script.rb (other_files...) -- script_arguments
 
@@ -41,8 +41,6 @@ Neri は、Ruby スクリプトを Ruby 未インストール環境向けに配�
   <dd>バージョンを表示します。</dd>
   <dt>--quiet</dt>
   <dd>実行中に途中経過等を表示しなくなります。</dd>
-  <dt>--verbose</dt>
-  <dd>実行中に詳細情報を表示するようになります。</dd>
 </dl>
 
 #### 依存ファイルの追加
@@ -86,8 +84,8 @@ Neri はデフォルトでは、enc フォルダ内の文字コードライブ�
   <dd>rubygems を使用します。このオプションを使わない場合、依存チェック時に使用した gem のファイルは vendor_ruby フォルダ内にコピーされ、rubygems 無しでも実行できるようになります。</dd>
   <dt>--enable-did-you-mean</dt>
   <dd>did_you_mean を使用します。</dd>
-  <dt>--chdir-first</dt>
-  <dd>実行時に、カレントフォルダを実行ファイルと同じフォルダに設定します。</dd>
+  <dt>--no-chdir</dt>
+  <dd>Neri で作成した実行ファイルは、デフォルトでは実行時にカレントフォルダを実行ファイルと同じフォルダに設定します。このオプションを使うとカレントフォルダを変更しなくなります。（このオプションを使うと、日本語フォルダ下などではうまく動かなくなる可能性があるので注意してください。）</dd>
   <dt>--pause-last</dt>
   <dt>--no-pause-last</dt>
   <dd>実行の最後に、pause を入れるか否かを設定します。省略した場合、コンソールアプリ（後述）の場合 on に、ウィンドウアプリの場合 off になります。</dd>
@@ -108,6 +106,8 @@ Neri はデフォルトでは、enc フォルダ内の文字コードライブ�
   <dt>--encryption-key &lt;key&gt;</dt>
   <dd>データファイルの暗号化キーを設定します。省略した場合、暗号化は行われません。
   暗号化は簡単なものなので、解読されては困るような重要なデータには用いないでください。</dd>
+  <dt>--virtual-directory &lt;dirname&gt;</dt>
+  <dd>データファイルからファイルを読み出す際、Neri はまず実行時のカレントフォルダをもとにファイルを検索し、見つからない場合はこの virtual-directory をもとにファイルを検索します。省略した場合は自動的に適切な仮想パスを生成します。</dd>
 </dl>
 
 #### exe ファイルの作成
@@ -115,10 +115,6 @@ Neri はデフォルトでは、enc フォルダ内の文字コードライブ�
 <dl>
   <dt>--no-exe</dt>
   <dd>exe ファイルは作成せず、bat ファイルを作成します。</dd>
-  <dt>--use-b2ec</dt>
-  <dd>exe ファイルの作成を、Bat To Exe Converter を用いて行うようにします。</dd>
-  <dt>--b2ec-path &lt;bat_to_exe_converter_path&gt;</dt>
-  <dd>Bat To Exe Converter がパスの通ったところにない場合、このオプションで場所を指定してください。</dd>
   <dt>--icon &lt;iconfile&gt;</dt>
   <dd>アイコンを設定します。</dd>
   <dt>--windows or --invisible</dt>
@@ -127,10 +123,6 @@ Neri はデフォルトでは、enc フォルダ内の文字コードライブ�
   ウィンドウアプリの場合、いわゆる「DOS窓」が開きません。
   省略した場合、実行スクリプトファイルの拡張子が ".rbw" の場合、あるいは DXRuby を使用する場合にはウィンドウアプリになります。
   そうでない場合はコンソールアプリになります。</dd>
-  <dt>--x64</dt>
-  <dd>64bit の exe ファイルを作成します。省略した場合、ruby 自体の bit 数に合わせます。 ※ Bat To Exe Converter 使用時のみ有効</dd>
-  <dt>--uac-admin</dt>
-  <dd>管理者として実行する exe ファイルを作成します。 ※ Bat To Exe Converter 使用時のみ有効</dd>
   <dt>--fileversion &lt;version&gt;</dt>
   <dt>--productversion &lt;version&gt;</dt>
   <dd>ファイルバージョン・製品バージョンを設定します。
@@ -148,56 +140,7 @@ Neri はデフォルトでは、enc フォルダ内の文字コードライブ�
   <dd>コメント等を設定します。</dd>
 </dl>
 
-#### UPX
-
-[UPX](https://upx.github.io/) を使用することで、全体のファイルサイズを小さくすることができます。
-
-<dl>
-  <dt>--use-upx</dt>
-  <dd>UPX を使用します。</dd>
-  <dt>--upx-path &lt;upx path&gt;</dt>
-  <dd>UPX がパスの通ったところにない場合、このオプションで場所を指定してください。</dd>
-  <dt>--upx_targets '&lt;glob&gt;'</dt>
-  <dd>UPX を適用するファイルを指定します。デフォルトは 'bin/**/*.dll' です。</dd>
-  <dt>--upx-options &lt;options&gt;</dt>
-  <dd>UPX に渡すオプションを設定します。</dd>
-</dl>
-
-#### 7-Zip
-
-[7-Zip](http://7-zip.org/) を使用することで、出力ファイルをまとめて zip ファイルにすることができます。
-
-<dl>
-  <dt>--zipfile &lt;filename&gt;</dt>
-  <dd>zip ファイルを作成します。</dd>
-  <dt>--7zip-path &lt;7-zip path&gt;</dt>
-  <dd>7-Zip がパスの通ったところにない場合、このオプションで場所を指定してください。</dd>
-</dl>
-
-#### Inno Setup
-
-[Inno Setup](http://www.jrsoftware.org/isinfo.php) を使用することで、インストーラーを作成することができます。※ あまりテストしていません。
-
-<dl>
-  <dt>--innosetup &lt;inno_script&gt;</dt>
-  <dd>.iss ファイルを指定します。</dd>
-  <dt>--iscc-path &lt;iscc path&gt;</dt>
-  <dd>iscc がパスの通ったところにない場合、このオプションで場所を指定してください。</dd>
-</dl>
-
-#### レシピファイル
-
-見てのとおり Neri の設定は多岐にわたるので、さまざまな設定を毎回入力するのは大変です。
-そこで、それらの設定を「レシピファイル」として保存・適用することができます。
-
-<dl>
-  <dt>--create-recipe &lt;recipefile&gt;</dt>
-  <dd>レシピファイルを作成します。このオプションを指定した場合、実行ファイルの作成は行いません。</dd>
-  <dt>--recipe &lt;recipefile&gt;</dt>
-  <dd>レシピファイルを適用して、実行ファイルを作成します。</dd>
-</dl>
-
-## データファイルの活用
+## データファイルを活用したファイルの簡易隠蔽機能
 
 たとえば以下のようにすることで、script.rb だけでなく、data フォルダ内のデータ一式をデータファイルに収めることができます。
 
