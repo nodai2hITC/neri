@@ -139,6 +139,7 @@ module Neri
 
     def search_in_load_path(file_path)
       $LOAD_PATH.each do |path_str|
+        path_str = path_str.dup.force_encoding(Encoding::UTF_8) if path_str.encoding == Encoding::BINARY
         load_path = Pathname.new(path_str.encode(Encoding::UTF_8))
         candidate_path_str = path_in_datafile(load_path + file_path)
         return candidate_path_str if candidate_path_str

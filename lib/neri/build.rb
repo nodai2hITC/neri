@@ -108,7 +108,7 @@ options:
   --encryption-key <key>
   --virtual-directory <string>
 
-  --no-exe
+  --no-exe or --bat
   --icon <iconfile>
   --windows or --invisible
   --console or --visible
@@ -180,7 +180,7 @@ options:
           options[:encryption_key] = ARGV.shift.encode("utf-8")
         when "--virtual-directory"
           options[:virtual_directory] = ARGV.shift.encode("utf-8")
-        when "--no-exe"
+        when "--no-exe", "--bat"
           options[:no_exe] = true
         when "--icon"
           options[:b2ec][:icon] = ARGV.shift.encode("utf-8")
@@ -272,7 +272,7 @@ options:
         Fiddle::TYPE_LONG,
         Fiddle::Importer.const_get(:CALL_TYPE_TO_ABI)[:stdcall]
       )
-      
+
       bytes_needed = 4 * 32
       module_handle_buffer = nil
       process_handle = getcurrentprocess.call
@@ -288,7 +288,7 @@ options:
         bytes_needed = bytes_needed_buffer.unpack1("I")
         break if bytes_needed <= module_handle_buffer.size
       end
-      
+
       handles = module_handle_buffer.unpack("I*")
       dependencies = handles.select { |handle| handle > 0 }.map do |handle|
         str = "\x00\x00" * 256
@@ -335,7 +335,6 @@ options:
     end
 
     def additional_gems_dependencies
-      require "rubygems"
       dependencies = []
       rubygems_dir = File.join(Gem.dir, "gems")
       options[:gems].each do |gem|
@@ -372,6 +371,18 @@ options:
       end
 
       dependencies.uniq
+    end
+
+    def gemspec_dependencies(dependencies)
+      default_gemspec_dir = Gem.default_specifications_dir.encode(Encoding::UTF_8)
+      gemspec_dir = File.dirname(default_gemspec_dir)
+      gemspecs = Dir.glob(default_gemspec_dir + "/**/*")
+      dependencies.each do |depend|
+        next unless depend.match(%r{/gems/\d+\.\d+\.\d+/gems/(.+?-[^/]+)/lib/})
+
+        gemspecs.push("#{gemspec_dir}/#{$1}.gemspec")
+      end
+      gemspecs
     end
 
     def check_dependencies
@@ -412,6 +423,7 @@ options:
       dependencies += additional_libs_dependencies
       dependencies += additional_gems_dependencies
       dependencies += encoding_dependencies
+      dependencies += gemspec_dependencies(dependencies) if options[:enable_gems]
       dependencies = select_dependencies(dependencies)
 
       size = dependencies.map { |d| File.size(d) }.inject(&:+)
