@@ -344,11 +344,7 @@ options:
       handles = module_handle_buffer.unpack("I*")
       dependencies = handles.select { |handle| handle > 0 }.map do |handle|
         str = "\x00\x00" * 256
-        modulefilename_length = getmodulefilename.call(
-          handle,
-          str,
-          str.size
-        )
+        modulefilename_length = getmodulefilename.call(handle, str, str.size)
         str[0, modulefilename_length * 2].force_encoding("UTF-16LE").encode("UTF-8")
       end
 
