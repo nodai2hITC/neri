@@ -490,7 +490,9 @@ options:
       end
       unless options[:enable_gems]
         system_files.each do |_src, desc|
-          desc.sub!(%r{/gems(/\d+\.\d+\.\d+/)gems/(.+?)-[^/]+/lib/}, "/vendor_ruby\\1")
+          desc.sub!(%r{/gems/(\d+\.\d+\.\d+)/gems/(.+?)-[^/]+/([^/]+)/}) do
+            "/vendor_ruby/#{$3 == "lib" ? $1 : $3}/"
+          end
         end
       end
 
