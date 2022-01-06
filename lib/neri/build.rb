@@ -32,8 +32,6 @@ module Neri
     b2ec: {
       icon: File.expand_path("#{File.dirname(__FILE__)}/../../share/default.ico"),
       invisible:        nil,
-      x64:              nil,
-      uac_admin:        nil,
       fileversion:      nil,
       productversion:   nil,
       productname:      nil,
@@ -48,7 +46,7 @@ module Neri
       comments:         nil
     }
   }
-  @rubyopt = ENV["RUBYOPT"].to_s
+  @rubyopt = ENV["RUBYOPT"].to_s.encode(Encoding::UTF_8)
   @args = ""
   @encryption_key = nil
 
@@ -132,8 +130,9 @@ options:
       puts "Neri #{Neri::VERSION}"
     end
 
-    def check_options
-      while arg = ARGV.shift
+    def load_options(argv)
+      until argv.empty?
+        arg = argv.shift
         case arg
         when "--help", "-h"
           output_help
@@ -144,17 +143,17 @@ options:
         when "--quiet", "-q"
           options[:quiet] = true
         when "--external_encoding"
-          options[:external_encoding] = ARGV.shift
+          options[:external_encoding] = argv.shift
         when "--dll"
-          options[:dlls] += ARGV.shift.split(",").map(&:strip)
+          options[:dlls] += argv.shift.split(",").map(&:strip)
         when "--lib"
-          options[:libs] += ARGV.shift.split(",").map(&:strip)
+          options[:libs] += argv.shift.split(",").map(&:strip)
         when "--gem"
-          options[:gems] += ARGV.shift.split(",").map(&:strip)
+          options[:gems] += argv.shift.split(",").map(&:strip)
         when "--no-enc"
           options[:encoding] = nil
         when "--encoding"
-          options[:encoding] = ARGV.shift
+          options[:encoding] = argv.shift
         when "--enable-gems"
           options[:enable_gems] = true
         when "--enable-did-you-mean"
@@ -168,50 +167,50 @@ options:
         when "--no-pause-last"
           options[:pause_last] = false
         when "--pause-text"
-          options[:pause_text] = ARGV.shift.encode("utf-8")
+          options[:pause_text] = argv.shift
           options[:pause_last] = true
         when "--output-dir"
-          options[:output_dir] = ARGV.shift.encode("utf-8")
+          options[:output_dir] = argv.shift
         when "--system-dir"
-          options[:system_dir] = ARGV.shift.encode("utf-8")
+          options[:system_dir] = argv.shift
         when "--datafile"
-          options[:datafile] = ARGV.shift.encode("utf-8")
+          options[:datafile] = argv.shift
         when "--encryption-key"
-          options[:encryption_key] = ARGV.shift.encode("utf-8")
+          options[:encryption_key] = argv.shift
         when "--virtual-directory"
-          options[:virtual_directory] = ARGV.shift.encode("utf-8")
+          options[:virtual_directory] = argv.shift
         when "--no-exe", "--bat"
           options[:no_exe] = true
         when "--icon"
-          options[:b2ec][:icon] = ARGV.shift.encode("utf-8")
+          options[:b2ec][:icon] = argv.shift
         when "--windows", "--invisible"
           options[:b2ec][:invisible] = true
         when "--console", "--visible"
           options[:b2ec][:invisible] = false
         when "--fileversion"
-          options[:b2ec][:fileversion] = ARGV.shift
+          options[:b2ec][:fileversion] = argv.shift
         when "--productversion"
-          options[:b2ec][:productversion] = ARGV.shift
+          options[:b2ec][:productversion] = argv.shift
         when "--productname"
-          options[:b2ec][:productname] = ARGV.shift.encode("utf-8")
+          options[:b2ec][:productname] = argv.shift
         when "--originalfilename"
-          options[:b2ec][:originalfilename] = ARGV.shift.encode("utf-8")
+          options[:b2ec][:originalfilename] = argv.shift
         when "--internalname"
-          options[:b2ec][:internalname] = ARGV.shift.encode("utf-8")
+          options[:b2ec][:internalname] = argv.shift
         when "--description"
-          options[:b2ec][:description] = ARGV.shift.encode("utf-8")
+          options[:b2ec][:description] = argv.shift
         when "--company"
-          options[:b2ec][:company] = ARGV.shift.encode("utf-8")
+          options[:b2ec][:company] = argv.shift
         when "--trademarks"
-          options[:b2ec][:trademarks] = ARGV.shift.encode("utf-8")
+          options[:b2ec][:trademarks] = argv.shift
         when "--copyright"
-          options[:b2ec][:copyright] = ARGV.shift.encode("utf-8")
+          options[:b2ec][:copyright] = argv.shift
         when "--privatebuild"
-          options[:b2ec][:privatebuild] = ARGV.shift.encode("utf-8")
+          options[:b2ec][:privatebuild] = argv.shift
         when "--specialbuild"
-          options[:b2ec][:specialbuild] = ARGV.shift.encode("utf-8")
+          options[:b2ec][:specialbuild] = argv.shift
         when "--comments"
-          options[:b2ec][:comments] = ARGV.shift.encode("utf-8")
+          options[:b2ec][:comments] = argv.shift
         when "--"
           break
         when /^(--.+)/
@@ -219,17 +218,41 @@ options:
           output_help
           exit
         else
-          @data_files.push(arg.encode("utf-8"))
+          if File.exist?(arg)
+            @data_files.push(arg)
+          else
+            error "File '#{arg}' not found!"
+            exit
+          end
         end
       end
 
+      @args += argv.map { |a| %( "#{a}") }.join("")
+    end
+
+    def load_options_from_file(file)
+      fullpath = File.expand_path(file)
+      return unless File.exist?(fullpath)
+
+      argv = File.read(fullpath, encoding: Encoding::UTF_8).lines.flat_map do |line|
+        line.strip.split(" ", 2)
+      end
+      load_options(argv)
+    end
+
+    def check_options
+      load_options_from_file("~/neri.config")
+      load_options_from_file("./neri.config")
+      tmp_data_files = @data_files
+      @data_files = []
+      load_options(ARGV.map { |arg| arg.encode(Encoding::UTF_8) })
+      @data_files += tmp_data_files
       if @data_files.empty?
         error "No Script File!"
         output_help
         exit
       end
 
-      @args = ARGV.map { |a| %( "#{a}") }.join("")
       @options[:external_encoding] ||= Encoding.default_external.name
       unless options[:enable_gems] || @rubyopt.index("--disable-gems")
         @rubyopt += " --disable-gems"
@@ -240,6 +263,36 @@ options:
       @rubyopt.sub!(%r{-r\S+/bundler/setup}, "")
       if @data_files.size > 1 || options[:encryption_key]
         options[:datafile] ||= "#{basename}.dat"
+      end
+    end
+
+    def run_script
+      nputs "Running script '#{scriptfile}' to check dependencies."
+      begin
+        load File.expand_path(scriptfile)
+      rescue SystemExit, Interrupt
+      end
+      nputs "Script '#{scriptfile}' end."
+
+      if defined? DXRuby
+        require "neri/dxruby"
+        @use_dxruby = true
+      end
+      if defined? DXRuby::Tiled
+        require "neri/dxruby_tiled"
+        @use_dxruby_tiled = true
+      end
+      if defined? Ayame
+        require "neri/ayame"
+        @use_ayame = true
+      end
+
+      if options[:b2ec][:invisible].nil? &&
+         (File.extname(scriptfile) == ".rbw" || @use_dxruby)
+        options[:b2ec][:invisible] = true
+      end
+      if options[:pause_last].nil? && !options[:b2ec][:invisible]
+        options[:pause_last] = true
       end
     end
 
@@ -301,7 +354,7 @@ options:
       end
 
       dependencies.map! { |dep| dep.sub(/^\\\\\?\\/, "") }
-      dependencies.map! { |dep| dep.tr(File::ALT_SEPARATOR, File::SEPARATOR) } if File::ALT_SEPARATOR
+      dependencies.map! { |dep| dep.tr("\\", "/") }
       dependencies.delete(rubyexe)
 
       dependencies.uniq
@@ -373,65 +426,6 @@ options:
       dependencies.uniq
     end
 
-    def gemspec_dependencies(dependencies)
-      default_gemspec_dir = Gem.default_specifications_dir.encode(Encoding::UTF_8)
-      gemspec_dir = File.dirname(default_gemspec_dir)
-      gemspecs = Dir.glob(default_gemspec_dir + "/**/*")
-      dependencies.each do |depend|
-        next unless depend.match(%r{/gems/\d+\.\d+\.\d+/gems/(.+?-[^/]+)/lib/})
-
-        gemspecs.push("#{gemspec_dir}/#{$1}.gemspec")
-      end
-      gemspecs
-    end
-
-    def check_dependencies
-      nputs "Running script '#{scriptfile}' to check dependencies."
-      begin
-        load File.expand_path(scriptfile)
-      rescue SystemExit, Interrupt
-      end
-      nputs "Script '#{scriptfile}' end."
-
-      if defined? DXRuby
-        require "neri/dxruby"
-        @use_dxruby = true
-      end
-      if defined? DXRuby::Tiled
-        require "neri/dxruby_tiled"
-        @use_dxruby_tiled = true
-      end
-      if defined? Ayame
-        require "neri/ayame"
-        @use_ayame = true
-      end
-
-      if options[:b2ec][:invisible].nil? &&
-         (File.extname(scriptfile) == ".rbw" || @use_dxruby)
-        options[:b2ec][:invisible] = true
-      end
-      if options[:pause_last].nil? && !options[:b2ec][:invisible]
-        options[:pause_last] = true
-      end
-
-      require "rbconfig"
-      dependencies = []
-      dependencies += rb_dependencies
-      dependencies += dll_dependencies
-      dependencies += ruby_dependencies
-      dependencies += additional_dlls_dependencies
-      dependencies += additional_libs_dependencies
-      dependencies += additional_gems_dependencies
-      dependencies += encoding_dependencies
-      dependencies += gemspec_dependencies(dependencies) if options[:enable_gems]
-      dependencies = select_dependencies(dependencies)
-
-      size = dependencies.map { |d| File.size(d) }.inject(&:+)
-      nputs "#{dependencies.size} files, #{size} bytes dependencies."
-
-      dependencies
-    end
-
     def select_dependencies(dependencies)
       dependencies.select! do |dependency|
         dependency.start_with?(rubydir)
@@ -455,6 +449,39 @@ options:
       end
 
       dependencies.uniq
+    end
+
+    def gemspec_dependencies(dependencies)
+      default_gemspec_dir = Gem.default_specifications_dir.encode(Encoding::UTF_8)
+      gemspec_dir = File.dirname(default_gemspec_dir)
+      gemspecs = Dir.glob(default_gemspec_dir + "/**/*")
+      dependencies.each do |depend|
+        next unless depend.match(%r{/gems/\d+\.\d+\.\d+/gems/(.+?-[^/]+)/lib/})
+
+        gemspecs.push("#{gemspec_dir}/#{$1}.gemspec")
+      end
+      gemspecs
+    end
+
+    def check_dependencies
+      run_script
+
+      require "rbconfig"
+      dependencies = []
+      dependencies += rb_dependencies
+      dependencies += dll_dependencies
+      dependencies += ruby_dependencies
+      dependencies += additional_dlls_dependencies
+      dependencies += additional_libs_dependencies
+      dependencies += additional_gems_dependencies
+      dependencies += encoding_dependencies
+      dependencies = select_dependencies(dependencies)
+      dependencies += gemspec_dependencies(dependencies) if options[:enable_gems]
+
+      size = dependencies.map { |d| File.size(d) }.inject(&:+)
+      nputs "#{dependencies.size} files, #{size} bytes dependencies."
+
+      dependencies
     end
 
     def copy_files(dependencies)
