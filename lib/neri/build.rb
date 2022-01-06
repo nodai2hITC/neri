@@ -10,7 +10,7 @@ module Neri
 
     external_encoding: nil,
 
-    dlls:     [],
+    dlls:     ["x64-msvcrt-ruby???.dll", "libssp-0.dll", "libgmp-10.dll"],
     libs:     [],
     gems:     [],
     encoding: "*",
@@ -304,18 +304,17 @@ options:
     def dll_dependencies
       require "fiddle/import"
 
-      pointer_type = Fiddle::SIZEOF_VOIDP == Fiddle::SIZEOF_LONG_LONG ? 'q*' : 'l!*'
       psapi    = Fiddle.dlopen("psapi.dll")
       kernel32 = Fiddle.dlopen("kernel32.dll")
       enumprocessmodules = Fiddle::Function.new(
         psapi["EnumProcessModules"],
-        [Fiddle::TYPE_LONG, Fiddle::TYPE_VOIDP, Fiddle::TYPE_LONG, Fiddle::TYPE_VOIDP],
+        [Fiddle::TYPE_UINTPTR_T, Fiddle::TYPE_VOIDP, Fiddle::TYPE_LONG, Fiddle::TYPE_VOIDP],
         Fiddle::TYPE_LONG,
         Fiddle::Importer.const_get(:CALL_TYPE_TO_ABI)[:stdcall]
       )
       getmodulefilename = Fiddle::Function.new(
         kernel32["GetModuleFileNameW"],
-        [Fiddle::TYPE_LONG, Fiddle::TYPE_VOIDP, Fiddle::TYPE_LONG],
+        [Fiddle::TYPE_UINTPTR_T, Fiddle::TYPE_VOIDP, Fiddle::TYPE_LONG],
         Fiddle::TYPE_LONG,
         Fiddle::Importer.const_get(:CALL_TYPE_TO_ABI)[:stdcall]
       )
@@ -333,10 +332,10 @@ options:
         module_handle_buffer = "\x00" * bytes_needed
         bytes_needed_buffer = [0].pack("I")
         enumprocessmodules.call(
-          [process_handle].pack("I").unpack1("i"),
-          [module_handle_buffer].pack("p").unpack1(pointer_type),
-          [module_handle_buffer.size].pack("I").unpack1("i"),
-          [bytes_needed_buffer].pack("p").unpack1(pointer_type)
+          process_handle,
+          module_handle_buffer,
+          module_handle_buffer.size,
+          bytes_needed_buffer
         )
         bytes_needed = bytes_needed_buffer.unpack1("I")
         break if bytes_needed <= module_handle_buffer.size
@@ -346,9 +345,9 @@ options:
       dependencies = handles.select { |handle| handle > 0 }.map do |handle|
         str = "\x00\x00" * 256
         modulefilename_length = getmodulefilename.call(
-          [handle].pack("I").unpack1("i"),
-          [str].pack("p").unpack1(pointer_type),
-          [str.size].pack("I").unpack1("i")
+          handle,
+          str,
+          str.size
         )
         str[0, modulefilename_length * 2].force_encoding("UTF-16LE").encode("UTF-8")
       end
