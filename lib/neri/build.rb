@@ -29,22 +29,20 @@ module NeriBuild
     virtual_directory: nil,
 
     no_exe: false,
-    b2ec: {
-      icon: File.expand_path("#{File.dirname(__FILE__)}/../../share/default.ico"),
-      invisible:        nil,
-      fileversion:      nil,
-      productversion:   nil,
-      productname:      nil,
-      originalfilename: nil,
-      internalname:     nil,
-      description:      nil,
-      company:          nil,
-      trademarks:       nil,
-      copyright:        nil,
-      privatebuild:     nil,
-      specialbuild:     nil,
-      comments:         nil
-    }
+    icon: File.expand_path("#{File.dirname(__FILE__)}/../../share/default.ico"),
+    invisible:        nil,
+    fileversion:      nil,
+    productversion:   nil,
+    productname:      nil,
+    originalfilename: nil,
+    internalname:     nil,
+    description:      nil,
+    company:          nil,
+    trademarks:       nil,
+    copyright:        nil,
+    privatebuild:     nil,
+    specialbuild:     nil,
+    comments:         nil
   }
   @rubyopt = ENV["RUBYOPT"].to_s.encode(Encoding::UTF_8)
   @args = ""
@@ -57,8 +55,6 @@ module NeriBuild
   @require_paths = {}
 
   class << self
-    attr_reader :options
-
     def gemspec_path(file)
       return nil unless file.match?(%r{/gems/\d+\.\d+\.\d+/gems/(.+?-[^/]+)/})
 
@@ -98,8 +94,8 @@ module NeriBuild
     def rubyexe   ; RbConfig.ruby; end
     def scriptfile; @data_files.first; end
     def basename  ; File.basename(scriptfile, ".*"); end
-    def basepath  ; File.join(options[:output_dir], basename); end
-    def datafile  ; File.join(options[:output_dir], options[:system_dir], options[:datafile]); end
+    def basepath  ; File.join(@options[:output_dir], basename); end
+    def datafile  ; File.join(@options[:output_dir], @options[:system_dir], @options[:datafile]); end
 
     # --help
     def output_help
@@ -168,76 +164,76 @@ options:
           output_version
           exit
         when "--quiet", "-q"
-          options[:quiet] = true
+          @options[:quiet] = true
         when "--external_encoding"
-          options[:external_encoding] = argv.shift
+          @options[:external_encoding] = argv.shift
         when "--dll"
-          options[:dlls] += argv.shift.split(",").map(&:strip)
+          @options[:dlls] += argv.shift.split(",").map(&:strip)
         when "--lib"
-          options[:libs] += argv.shift.split(",").map(&:strip)
+          @options[:libs] += argv.shift.split(",").map(&:strip)
         when "--gem"
-          options[:gems] += argv.shift.split(",").map(&:strip)
+          @options[:gems] += argv.shift.split(",").map(&:strip)
         when "--no-enc"
-          options[:encoding] = nil
+          @options[:encoding] = nil
         when "--encoding"
-          options[:encoding] = argv.shift
+          @options[:encoding] = argv.shift
         when "--enable-gems"
-          options[:enable_gems] = true
+          @options[:enable_gems] = true
         when "--enable-did-you-mean"
-          options[:enable_did_you_mean] = true
+          @options[:enable_did_you_mean] = true
         when "--no-chdir"
-          options[:chdir_first] = false
+          @options[:chdir_first] = false
         when "--chdir-first" # deprecated
-          options[:chdir_first] = true
+          @options[:chdir_first] = true
         when "--pause-last"
-          options[:pause_last] = true
+          @options[:pause_last] = true
         when "--no-pause-last"
-          options[:pause_last] = false
+          @options[:pause_last] = false
         when "--pause-text"
-          options[:pause_text] = argv.shift
-          options[:pause_last] = true
+          @options[:pause_text] = argv.shift
+          @options[:pause_last] = true
         when "--output-dir"
-          options[:output_dir] = argv.shift
+          @options[:output_dir] = argv.shift
         when "--system-dir"
-          options[:system_dir] = argv.shift
+          @options[:system_dir] = argv.shift
         when "--datafile"
-          options[:datafile] = argv.shift
+          @options[:datafile] = argv.shift
         when "--encryption-key"
-          options[:encryption_key] = argv.shift
+          @options[:encryption_key] = argv.shift
         when "--virtual-directory"
-          options[:virtual_directory] = argv.shift
+          @options[:virtual_directory] = argv.shift
         when "--no-exe", "--bat"
-          options[:no_exe] = true
+          @options[:no_exe] = true
         when "--icon"
-          options[:b2ec][:icon] = argv.shift
+          @options[:icon] = argv.shift
         when "--windows", "--invisible"
-          options[:b2ec][:invisible] = true
+          @options[:invisible] = true
         when "--console", "--visible"
-          options[:b2ec][:invisible] = false
+          @options[:invisible] = false
         when "--fileversion"
-          options[:b2ec][:fileversion] = argv.shift
+          @options[:fileversion] = argv.shift
         when "--productversion"
-          options[:b2ec][:productversion] = argv.shift
+          @options[:productversion] = argv.shift
         when "--productname"
-          options[:b2ec][:productname] = argv.shift
+          @options[:productname] = argv.shift
         when "--originalfilename"
-          options[:b2ec][:originalfilename] = argv.shift
+          @options[:originalfilename] = argv.shift
         when "--internalname"
-          options[:b2ec][:internalname] = argv.shift
+          @options[:internalname] = argv.shift
         when "--description"
-          options[:b2ec][:description] = argv.shift
+          @options[:description] = argv.shift
         when "--company"
-          options[:b2ec][:company] = argv.shift
+          @options[:company] = argv.shift
         when "--trademarks"
-          options[:b2ec][:trademarks] = argv.shift
+          @options[:trademarks] = argv.shift
         when "--copyright"
-          options[:b2ec][:copyright] = argv.shift
+          @options[:copyright] = argv.shift
         when "--privatebuild"
-          options[:b2ec][:privatebuild] = argv.shift
+          @options[:privatebuild] = argv.shift
         when "--specialbuild"
-          options[:b2ec][:specialbuild] = argv.shift
+          @options[:specialbuild] = argv.shift
         when "--comments"
-          options[:b2ec][:comments] = argv.shift
+          @options[:comments] = argv.shift
         when "--"
           break
         when /^(--.+)/
@@ -284,15 +280,15 @@ options:
       end
 
       @options[:external_encoding] ||= Encoding.default_external.name
-      unless options[:enable_gems] || @rubyopt.index("--disable-gems")
+      unless @options[:enable_gems] || @rubyopt.index("--disable-gems")
         @rubyopt += " --disable-gems"
       end
-      unless options[:enable_did_you_mean] || @rubyopt.index("--disable-did_you_mean")
+      unless @options[:enable_did_you_mean] || @rubyopt.index("--disable-did_you_mean")
         @rubyopt += " --disable-did_you_mean"
       end
       @rubyopt.sub!(%r{-r\S+/bundler/setup}, "")
-      if @data_files.size > 1 || options[:encryption_key]
-        options[:datafile] ||= "#{basename}.dat"
+      if @data_files.size > 1 || @options[:encryption_key]
+        @options[:datafile] ||= "#{basename}.dat"
       end
     end
 
@@ -317,12 +313,12 @@ options:
         @use_ayame = true
       end
 
-      if options[:b2ec][:invisible].nil? &&
+      if @options[:invisible].nil? &&
          (File.extname(scriptfile) == ".rbw" || @use_dxruby)
-        options[:b2ec][:invisible] = true
+        @options[:invisible] = true
       end
-      if options[:pause_last].nil? && !options[:b2ec][:invisible]
-        options[:pause_last] = true
+      if @options[:pause_last].nil? && !@options[:invisible]
+        @options[:pause_last] = true
       end
     end
 
@@ -393,7 +389,7 @@ options:
 
     def additional_dlls_dependencies
       dependencies = []
-      options[:dlls].each do |dll|
+      @options[:dlls].each do |dll|
         dependencies += Dir.glob(File.join(bindir, "**", dll))
         dependencies += Dir.glob(File.join(bindir, "**", "#{dll}.*"))
       end
@@ -402,7 +398,7 @@ options:
 
     def additional_libs_dependencies
       dependencies = []
-      options[:libs].each do |lib|
+      @options[:libs].each do |lib|
         $LOAD_PATH.each do |path|
           dependencies += Dir.glob(File.join(path, lib))
           dependencies += Dir.glob(File.join(path, "#{lib}.*"))
@@ -415,7 +411,7 @@ options:
     def additional_gems_dependencies
       dependencies = []
       rubygems_dir = File.join(Gem.dir, "gems")
-      options[:gems].each do |gem|
+      @options[:gems].each do |gem|
         gem.sub!(/:(.+)/, "")
         targets = Regexp.last_match(1).to_s.split("|")
         targets.push("lib/**/*")
@@ -431,12 +427,12 @@ options:
     end
 
     def encoding_dependencies
-      return [] unless options[:encoding]
+      return [] unless @options[:encoding]
 
       dependencies = []
       enc_dir = Dir.glob(File.join(RbConfig::CONFIG["archdir"] || RbConfig::TOPDIR, "**", "enc")).first
 
-      options[:encoding].split(",").map(&:strip).each do |enc|
+      @options[:encoding].split(",").map(&:strip).each do |enc|
         case enc
         when "ja"
           %w[windows_31j.so japanese_sjis.so encdb.so].each do |enc_name|
@@ -460,13 +456,13 @@ options:
         dependencies.delete(File.expand_path(file))
       end
 
-      unless options[:enable_gems]
+      unless @options[:enable_gems]
         dependencies.delete_if do |dependency|
           File.basename(dependency) == "rubygems.rb" ||
             dependency.split(File::SEPARATOR).index("rubygems")
         end
       end
-      unless options[:enable_did_you_mean]
+      unless @options[:enable_did_you_mean]
         dependencies.delete_if do |dependency|
           File.basename(dependency) == "did_you_mean.rb" ||
             dependency.split(File::SEPARATOR).index("did_you_mean")
@@ -496,7 +492,7 @@ options:
       dependencies += additional_gems_dependencies
       dependencies += encoding_dependencies
       dependencies = select_dependencies(dependencies)
-      dependencies += gemspec_dependencies(dependencies) if options[:enable_gems]
+      dependencies += gemspec_dependencies(dependencies) if @options[:enable_gems]
 
       size = dependencies.map { |d| File.size(d) }.inject(&:+)
       nputs "#{dependencies.size} files, #{size} bytes dependencies."
@@ -508,12 +504,12 @@ options:
       nputs "Copying dependencies."
       require "fileutils"
       src_dir  = rubydir
-      desc_dir = File.join(options[:output_dir], options[:system_dir], "")
+      desc_dir = File.join(@options[:output_dir], @options[:system_dir], "")
 
       system_files = dependencies.map do |file|
         [file, file.sub(src_dir, desc_dir)]
       end
-      unless options[:enable_gems]
+      unless @options[:enable_gems]
         system_files.each do |src, desc|
           paths = require_paths(src)
           next unless paths
@@ -534,11 +530,11 @@ options:
           FileUtils.copy(src, desc)
         end
       end
-      FileUtils.copy(scriptfile, desc_dir) unless options[:datafile]
+      FileUtils.copy(scriptfile, desc_dir) unless @options[:datafile]
     end
 
     def create_datafile
-      return unless options[:datafile]
+      return unless @options[:datafile]
 
       nputs "Creating datafile '#{datafile}'."
       data_files = @data_files.select { |file| File.file? file }
@@ -547,7 +543,7 @@ options:
       end
       data_files.uniq! { |file| File.expand_path(file) }
 
-      unless options[:virtual_directory]
+      unless @options[:virtual_directory]
         dir_pwd = Dir.pwd.encode(Encoding::UTF_8)
         virtual_directories = Pathname.new(dir_pwd).ascend.to_a.map(&:to_s)
         data_files.each do |file|
@@ -555,13 +551,13 @@ options:
           next if fullpath.start_with?(rubydir) || Pathname.new(file).absolute?
           virtual_directories.shift until fullpath.start_with?(virtual_directories.first)
         end
-        options[:virtual_directory] = relative_path(dir_pwd, virtual_directories.first, "/_neri_virtual_directory_/")
-        nputs "virtual_directory: #{options[:virtual_directory]}"
+        @options[:virtual_directory] = relative_path(dir_pwd, virtual_directories.first, "/_neri_virtual_directory_/")
+        nputs "virtual_directory: #{@options[:virtual_directory]}"
       end
 
-      if options[:encryption_key]
+      if @options[:encryption_key]
         require "digest/sha2"
-        @encryption_key = Digest::SHA2.hexdigest(options[:encryption_key])
+        @encryption_key = Digest::SHA2.hexdigest(@options[:encryption_key])
       end
       Neri.key = @encryption_key || "0" * 64
       File.open(datafile, "wb") do |f|
@@ -569,7 +565,7 @@ options:
         file_informations = data_files.map do |file|
           fullpath = File.expand_path(file)
           filename = if fullpath.start_with?(rubydir)
-                       relative_path(fullpath, rubydir, "#{options[:system_dir]}#{File::SEPARATOR}")
+                       relative_path(fullpath, rubydir, "#{@options[:system_dir]}#{File::SEPARATOR}")
                      else
                        file
                      end
@@ -592,26 +588,26 @@ options:
       nputs "Creating batch_file '#{basepath}.bat'."
 
       pause_command = ""
-      if options[:pause_last]
+      if @options[:pause_last]
         pause_command += "echo.\n"
-        if options[:pause_text]
-          pause_command += "echo #{options[:pause_text]}\n" +
+        if @options[:pause_text]
+          pause_command += "echo #{@options[:pause_text]}\n" +
                            "pause > nul"
         else
           pause_command += "pause"
         end
       end
-      chdir = options[:chdir_first] ? 'cd /d "%~dp0"' : ""
+      chdir = @options[:chdir_first] ? 'cd /d "%~dp0"' : ""
 
-      File.open("#{basepath}.bat", "w:#{options[:external_encoding]}") do |f|
+      File.open("#{basepath}.bat", "w:#{@options[:external_encoding]}") do |f|
         f.puts <<-BATCH
 @echo off
 setlocal
-set PATH=%~dp0#{options[:system_dir]}\\#{relative_path(bindir)};%PATH%
+set PATH=%~dp0#{@options[:system_dir]}\\#{relative_path(bindir)};%PATH%
 set NERI_EXECUTABLE=%~0
 #{chdir}
 if %~x0 == .exe ( shift )
-#{ruby_command(options[:chdir_first] ? '' : '%~dp0')} %1 %2 %3 %4 %5 %6 %7 %8 %9
+#{ruby_command(@options[:chdir_first] ? '' : '%~dp0')} %1 %2 %3 %4 %5 %6 %7 %8 %9
 #{pause_command}
 endlocal
         BATCH
@@ -629,9 +625,9 @@ endlocal
       c_file   = to_winpath("#{basepath}_tmp.c" )
       o_file   = to_winpath("#{basepath}_tmp.o" )
       rc_file  = to_winpath("#{basepath}_tmp.rc")
-      system_dir = escape_cstr(to_winpath(File.join(options[:system_dir], "")))
+      system_dir = escape_cstr(to_winpath(File.join(@options[:system_dir], "")))
       nputs "Creating exe_file '#{exe_file}'."
-      File.open(c_file, "w:#{options[:external_encoding]}") do |f|
+      File.open(c_file, "w:#{@options[:external_encoding]}") do |f|
         f.puts <<-CFILE
 #include <stdio.h>
 #include <stdlib.h>
@@ -660,9 +656,9 @@ int main(int argc, char *argv[])
     putenv(paths);
     snprintf(paths, sizeof(paths), "PATH=%s%s#{system_dir}bin;%s", drive, dir, getenv("PATH"));
     putenv(paths);
-    #{options[:chdir_first] ? 'snprintf(paths, sizeof(paths), "%s%s", drive, dir);chdir(paths);' : ''}
-    snprintf(runruby, sizeof(runruby), "#{escape_cstr(ruby_command(options[:chdir_first] ? '' : '%s%s'))} %s %s %s %s %s %s %s %s %s",
-        #{options[:chdir_first] ? '' : 'drive, dir,'}
+    #{@options[:chdir_first] ? 'snprintf(paths, sizeof(paths), "%s%s", drive, dir);chdir(paths);' : ''}
+    snprintf(runruby, sizeof(runruby), "#{escape_cstr(ruby_command(@options[:chdir_first] ? '' : '%s%s'))} %s %s %s %s %s %s %s %s %s",
+        #{@options[:chdir_first] ? '' : 'drive, dir,'}
         argc > 1 ? argv[1] : "",
         argc > 2 ? argv[2] : "",
         argc > 3 ? argv[3] : "",
@@ -674,15 +670,15 @@ int main(int argc, char *argv[])
         argc > 9 ? argv[9] : ""
         );
         CFILE
-        if options[:b2ec][:invisible]
+        if @options[:invisible]
           f.puts %[    CreateProcess(NULL, runruby, NULL, NULL, FALSE, NORMAL_PRIORITY_CLASS | CREATE_NO_WINDOW, NULL, NULL, &si, &pi);]
         else
           f.puts %[    system(runruby);]
         end
-        if options[:pause_last]
+        if @options[:pause_last]
           f.puts %[    system("echo.");]
-          if options[:pause_text]
-            f.puts %[    system("echo #{escape_cstr(options[:pause_text])}");]
+          if @options[:pause_text]
+            f.puts %[    system("echo #{escape_cstr(@options[:pause_text])}");]
             f.puts %[    system("pause >nul");]
           else
             f.puts %[    system("pause");]
@@ -691,31 +687,31 @@ int main(int argc, char *argv[])
         f.puts "    return 0;\n}"
       end
 
-      File.open(rc_file, "w:#{options[:external_encoding]}") do |f|
+      File.open(rc_file, "w:#{@options[:external_encoding]}") do |f|
         f.puts <<-RCFILE
 #include <winver.h>
 
 1 VERSIONINFO
-#{options[:b2ec][:fileversion   ] ? "FILEVERSION     #{escape_cstr(options[:b2ec][:fileversion   ])}" : ""}
-#{options[:b2ec][:productversion] ? "PRODUCTVERSION  #{escape_cstr(options[:b2ec][:productversion])}" : ""}
+#{@options[:fileversion   ] ? "FILEVERSION     #{escape_cstr(@options[:fileversion   ])}" : ""}
+#{@options[:productversion] ? "PRODUCTVERSION  #{escape_cstr(@options[:productversion])}" : ""}
 FILETYPE        VFT_APP
 BEGIN
     BLOCK "StringFileInfo"
     BEGIN
         BLOCK "000004b0"
         BEGIN
-            #{options[:b2ec][:fileversion     ] ? 'VALUE "FileVersion",      "' + escape_cstr(options[:b2ec][:fileversion     ]) + '\0"' : ''}
-            #{options[:b2ec][:productversion  ] ? 'VALUE "ProductVersion",   "' + escape_cstr(options[:b2ec][:productversion  ]) + '\0"' : ''}
-            #{options[:b2ec][:productname     ] ? 'VALUE "ProductName",      "' + escape_cstr(options[:b2ec][:productname     ]) + '\0"' : ''}
-            #{options[:b2ec][:originalfilename] ? 'VALUE "OriginalFileName", "' + escape_cstr(options[:b2ec][:originalfilename]) + '\0"' : ''}
-            #{options[:b2ec][:internalname    ] ? 'VALUE "InternalName",     "' + escape_cstr(options[:b2ec][:internalname    ]) + '\0"' : ''}
-            #{options[:b2ec][:description     ] ? 'VALUE "FileDescription",  "' + escape_cstr(options[:b2ec][:description     ]) + '\0"' : ''}
-            #{options[:b2ec][:company         ] ? 'VALUE "CompanyName",      "' + escape_cstr(options[:b2ec][:company         ]) + '\0"' : ''}
-            #{options[:b2ec][:trademarks      ] ? 'VALUE "LegalTrademarks",  "' + escape_cstr(options[:b2ec][:trademarks      ]) + '\0"' : ''}
-            #{options[:b2ec][:copyright       ] ? 'VALUE "LegalCopyright",   "' + escape_cstr(options[:b2ec][:copyright       ]) + '\0"' : ''}
-            #{options[:b2ec][:privatebuild    ] ? 'VALUE "PrivateBuild",     "' + escape_cstr(options[:b2ec][:privatebuild    ]) + '\0"' : ''}
-            #{options[:b2ec][:specialbuild    ] ? 'VALUE "SpecialBuild",     "' + escape_cstr(options[:b2ec][:specialbuild    ]) + '\0"' : ''}
-            #{options[:b2ec][:comments        ] ? 'VALUE "Comments",         "' + escape_cstr(options[:b2ec][:comments        ]) + '\0"' : ''}
+            #{@options[:fileversion     ] ? 'VALUE "FileVersion",      "' + escape_cstr(@options[:fileversion     ]) + '\0"' : ''}
+            #{@options[:productversion  ] ? 'VALUE "ProductVersion",   "' + escape_cstr(@options[:productversion  ]) + '\0"' : ''}
+            #{@options[:productname     ] ? 'VALUE "ProductName",      "' + escape_cstr(@options[:productname     ]) + '\0"' : ''}
+            #{@options[:originalfilename] ? 'VALUE "OriginalFileName", "' + escape_cstr(@options[:originalfilename]) + '\0"' : ''}
+            #{@options[:internalname    ] ? 'VALUE "InternalName",     "' + escape_cstr(@options[:internalname    ]) + '\0"' : ''}
+            #{@options[:description     ] ? 'VALUE "FileDescription",  "' + escape_cstr(@options[:description     ]) + '\0"' : ''}
+            #{@options[:company         ] ? 'VALUE "CompanyName",      "' + escape_cstr(@options[:company         ]) + '\0"' : ''}
+            #{@options[:trademarks      ] ? 'VALUE "LegalTrademarks",  "' + escape_cstr(@options[:trademarks      ]) + '\0"' : ''}
+            #{@options[:copyright       ] ? 'VALUE "LegalCopyright",   "' + escape_cstr(@options[:copyright       ]) + '\0"' : ''}
+            #{@options[:privatebuild    ] ? 'VALUE "PrivateBuild",     "' + escape_cstr(@options[:privatebuild    ]) + '\0"' : ''}
+            #{@options[:specialbuild    ] ? 'VALUE "SpecialBuild",     "' + escape_cstr(@options[:specialbuild    ]) + '\0"' : ''}
+            #{@options[:comments        ] ? 'VALUE "Comments",         "' + escape_cstr(@options[:comments        ]) + '\0"' : ''}
         END
     END
 
@@ -725,23 +721,23 @@ BEGIN
     END
 END
 
-2 ICON "#{escape_cstr(options[:b2ec][:icon])}"
+2 ICON "#{escape_cstr(@options[:icon])}"
         RCFILE
       end
       nsystem(%(windres -o "#{o_file}" "#{rc_file}"))
-      nsystem(%(gcc#{options[:b2ec][:invisible] ? ' -mwindows' : ''} -o "#{exe_file}" "#{c_file}" "#{o_file}"))
+      nsystem(%(gcc#{@options[:invisible] ? ' -mwindows' : ''} -o "#{exe_file}" "#{c_file}" "#{o_file}"))
       nsystem(%(strip "#{exe_file}"))
       File.delete(c_file, rc_file, o_file)
     end
 
     def ruby_command(path)
-      system_dir = "#{path}#{File.join(options[:system_dir], '')}"
+      system_dir = "#{path}#{File.join(@options[:system_dir], '')}"
       ruby_code = ""
       ruby_code = "Neri.key='#{@encryption_key}';" if @encryption_key
-      if options[:datafile]
-        ruby_code += "Neri.datafile='#{system_dir}' + #{unpack_filename(options[:datafile])};"
-        if options[:virtual_directory]
-          ruby_code += "Neri.virtual_directory=#{unpack_filename(options[:virtual_directory])};"
+      if @options[:datafile]
+        ruby_code += "Neri.datafile='#{system_dir}' + #{unpack_filename(@options[:datafile])};"
+        if @options[:virtual_directory]
+          ruby_code += "Neri.virtual_directory=#{unpack_filename(@options[:virtual_directory])};"
         end
         ruby_code += "load #{unpack_filename(File.basename(scriptfile))}"
       else
@@ -762,7 +758,7 @@ END
       dependencies = check_dependencies
       copy_files(dependencies)
       create_datafile
-      options[:no_exe] ? create_batfile : create_exefile
+      @options[:no_exe] ? create_batfile : create_exefile
       nputs "Neri Finished."
     end
 
@@ -773,7 +769,7 @@ END
     end
 
     def nputs(str)
-      puts "=== #{str}" unless options[:quiet]
+      puts "=== #{str}" unless @options[:quiet]
     end
 
     def error(str)
@@ -789,8 +785,8 @@ END
     end
 
     def nsystem(str)
-      command = str.encode(options[:external_encoding])
-      system(command + (options[:quiet] ? " >nul 2>&1" : ""))
+      command = str.encode(@options[:external_encoding])
+      system(command + (@options[:quiet] ? " >nul 2>&1" : ""))
     end
   end
 end
