@@ -54,8 +54,34 @@ module Neri
   @use_dxruby_tiled = false
   @use_ayame        = false
 
+  @require_paths = {}
+
   class << self
     attr_reader :options
+
+    def gemspec_path(file)
+      return nil unless file.match?(%r{/gems/\d+\.\d+\.\d+/gems/(.+?-[^/]+)/})
+
+      file.sub(%r{(/gems/\d+\.\d+\.\d+)/gems/(.+?-[^/]+)/.+\z}) do
+        "#{$1}/specifications/#{$2}.gemspec"
+      end
+    end
+
+    def require_paths(file)
+      path = gemspec_path(file)
+      return nil unless path
+      return @require_paths[path] if @require_paths.key?(path)
+      return ["lib/"] unless File.exist?(path)
+
+      gemspec = File.binread(path)
+      if gemspec.match(/\.require_paths\s*=\s*\[([^\]]+)\]/)
+        @require_paths[path] = $1.scan(/['"]([^'"]+)['"]/).flatten.map do |p|
+          "#{p.delete_suffix('/')}/"
+        end
+      else
+        @require_paths[path] = ["lib/"]
+      end
+    end
 
     def relative_path(path, basedir = rubydir, prepath = "")
       basedir.concat(File::SEPARATOR) unless basedir.end_with?(File::SEPARATOR)
@@ -448,14 +474,9 @@ options:
 
     def gemspec_dependencies(dependencies)
       default_gemspec_dir = Gem.default_specifications_dir.encode(Encoding::UTF_8)
-      gemspec_dir = File.dirname(default_gemspec_dir)
       gemspecs = Dir.glob(default_gemspec_dir + "/**/*")
-      dependencies.each do |depend|
-        next unless depend.match(%r{/gems/\d+\.\d+\.\d+/gems/(.+?-[^/]+)/lib/})
-
-        gemspecs.push("#{gemspec_dir}/#{$1}.gemspec")
-      end
-      gemspecs
+      gemspecs += dependencies.map { |depend| gemspec_path(depend) }
+      gemspecs.compact.uniq
     end
 
     def check_dependencies
@@ -489,9 +510,16 @@ options:
         [file, file.sub(src_dir, desc_dir)]
       end
       unless options[:enable_gems]
-        system_files.each do |_src, desc|
-          desc.sub!(%r{/gems/(\d+\.\d+\.\d+)/gems/(.+?)-[^/]+/([^/]+)/}) do
-            "/vendor_ruby/#{$3 == "lib" ? $1 : $3}/"
+        system_files.each do |src, desc|
+          paths = require_paths(src)
+          next unless paths
+
+          desc.sub!(%r{/gems/(\d+\.\d+\.\d+)/gems/(.+?-[^/]+)/(.+)\z}) do
+            version, gem_name, file = $1, $2, $3
+            paths.each do |path|
+              file = file.sub(path, "#{version}/") if file.start_with?(path)
+            end
+            "/vendor_ruby/#{file}"
           end
         end
       end
