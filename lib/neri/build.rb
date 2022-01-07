@@ -2,7 +2,7 @@
 
 require "neri"
 
-module Neri
+module NeriBuild
   @data_files = []
 
   @options = {
@@ -63,7 +63,7 @@ module Neri
       return nil unless file.match?(%r{/gems/\d+\.\d+\.\d+/gems/(.+?-[^/]+)/})
 
       file.sub(%r{(/gems/\d+\.\d+\.\d+)/gems/(.+?-[^/]+)/.+\z}) do
-        "#{$1}/specifications/#{$2}.gemspec"
+        "#{Regexp.last_match(1)}/specifications/#{Regexp.last_match(2)}.gemspec"
       end
     end
 
@@ -71,16 +71,17 @@ module Neri
       path = gemspec_path(file)
       return nil unless path
       return @require_paths[path] if @require_paths.key?(path)
-      return ["lib/"] unless File.exist?(path)
 
-      gemspec = File.binread(path)
-      if gemspec.match(/\.require_paths\s*=\s*\[([^\]]+)\]/)
-        @require_paths[path] = $1.scan(/['"]([^'"]+)['"]/).flatten.map do |p|
-          "#{p.delete_suffix('/')}/"
+      @require_paths[path] = ["lib/"]
+      if File.exist?(path)
+        gemspec = File.binread(path)
+        if gemspec.match(/\.require_paths\s*=\s*\[([^\]]+)\]/)
+          @require_paths[path] = Regexp.last_match(1).scan(/['"]([^'"]+)['"]/).flatten.map do |p|
+            "#{p.delete_suffix('/')}/"
+          end
         end
-      else
-        @require_paths[path] = ["lib/"]
       end
+      @require_paths[path]
     end
 
     def relative_path(path, basedir = rubydir, prepath = "")
@@ -272,6 +273,9 @@ options:
       tmp_data_files = @data_files
       @data_files = []
       load_options(ARGV.map { |arg| arg.encode(Encoding::UTF_8) })
+      until ARGV.empty?
+        break if ARGV.shift == "--"
+      end
       @data_files += tmp_data_files
       if @data_files.empty?
         error "No Script File!"
@@ -474,7 +478,7 @@ options:
 
     def gemspec_dependencies(dependencies)
       default_gemspec_dir = Gem.default_specifications_dir.encode(Encoding::UTF_8)
-      gemspecs = Dir.glob(default_gemspec_dir + "/**/*")
+      gemspecs = Dir.glob("#{default_gemspec_dir}/**/*")
       gemspecs += dependencies.map { |depend| gemspec_path(depend) }
       gemspecs.compact.uniq
     end
@@ -514,8 +518,8 @@ options:
           paths = require_paths(src)
           next unless paths
 
-          desc.sub!(%r{/gems/(\d+\.\d+\.\d+)/gems/(.+?-[^/]+)/(.+)\z}) do
-            version, gem_name, file = $1, $2, $3
+          desc.sub!(%r{/gems/(\d+\.\d+\.\d+)/gems/.+?-[^/]+/(.+)\z}) do
+            version, file = Regexp.last_match(1), Regexp.last_match(2)
             paths.each do |path|
               file = file.sub(path, "#{version}/") if file.start_with?(path)
             end
@@ -571,12 +575,12 @@ options:
                      end
           filedata = [filename, File.size(file), pos].join("\t")
           pos += File.size(file)
-          pos += BLOCK_LENGTH - pos % BLOCK_LENGTH unless pos % BLOCK_LENGTH == 0
+          pos += Neri::BLOCK_LENGTH - pos % Neri::BLOCK_LENGTH unless pos % Neri::BLOCK_LENGTH == 0
           filedata
         end
         files_str = file_informations.join("\n").encode(Encoding::UTF_8)
 
-        f.write(format("%#{BLOCK_LENGTH}d", files_str.bytesize))
+        f.write(format("%#{Neri::BLOCK_LENGTH}d", files_str.bytesize))
         f.write(xor(files_str))
         data_files.each do |file|
           f.write(xor(File.binread(file)))
@@ -763,6 +767,10 @@ END
     end
 
     private
+
+    def xor(str)
+      Neri.__send__(:xor, str)
+    end
 
     def nputs(str)
       puts "=== #{str}" unless options[:quiet]

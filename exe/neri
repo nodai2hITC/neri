@@ -4,4 +4,4 @@
 require "neri"
 load "neri/build.rb"
 
-Neri.run()
+NeriBuild.run()
