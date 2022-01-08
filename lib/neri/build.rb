@@ -593,12 +593,12 @@ options:
       pause_command = ""
       if @options[:pause_last]
         pause_command += "echo.\n"
-        if @options[:pause_text]
-          pause_command += "echo #{@options[:pause_text]}\n" +
-                           "pause > nul"
-        else
-          pause_command += "pause"
-        end
+        pause_command +=
+          if @options[:pause_text]
+            "echo #{@options[:pause_text]}\npause > nul"
+          else
+            "pause"
+          end
       end
       chdir = @options[:chdir_first] ? 'cd /d "%~dp0"' : ""
 
