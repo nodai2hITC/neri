@@ -526,9 +526,7 @@ options:
 
       system_files.each do |src, desc|
         FileUtils.makedirs(File.dirname(desc))
-        if File.file?(src)
-          FileUtils.copy(src, desc)
-        end
+        FileUtils.copy(src, desc) if File.file?(src)
       end
       FileUtils.copy(scriptfile, desc_dir) unless @options[:datafile]
     end
@@ -549,6 +547,7 @@ options:
         data_files.each do |file|
           fullpath = File.expand_path(file)
           next if fullpath.start_with?(rubydir) || Pathname.new(file).absolute?
+
           virtual_directories.shift until fullpath.start_with?(virtual_directories.first)
         end
         @options[:virtual_directory] = relative_path(dir_pwd, virtual_directories.first, "/_neri_virtual_directory_/")
@@ -692,8 +691,8 @@ int main(int argc, char *argv[])
 #include <winver.h>
 
 1 VERSIONINFO
-#{@options[:fileversion   ] ? "FILEVERSION     #{escape_cstr(@options[:fileversion   ])}" : ""}
-#{@options[:productversion] ? "PRODUCTVERSION  #{escape_cstr(@options[:productversion])}" : ""}
+#{@options[:fileversion   ] ? "FILEVERSION     #{escape_cstr(@options[:fileversion   ])}" : ''}
+#{@options[:productversion] ? "PRODUCTVERSION  #{escape_cstr(@options[:productversion])}" : ''}
 FILETYPE        VFT_APP
 BEGIN
     BLOCK "StringFileInfo"
