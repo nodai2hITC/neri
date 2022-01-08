@@ -122,7 +122,7 @@ Neri はデフォルトでは、enc フォルダ内の文字コードライブ�
   <dt>--console or --visible</dt>
   <dd>ウィンドウアプリにするかコンソールアプリにするかを設定します。
   ウィンドウアプリの場合、いわゆる「DOS窓」が開きません。
-  省略した場合、実行スクリプトファイルの拡張子が ".rbw" の場合、あるいは DXRuby や Gosu, LibUI を使用する場合にはウィンドウアプリになります。
+  省略した場合、実行スクリプトファイルの拡張子が ".rbw" の場合、あるいは [DXRuby](http://dxruby.osdn.jp/) や [Gosu](https://www.libgosu.org/ruby.html), [LibUI](https://github.com/kojix2/libui) を使用する場合にはウィンドウアプリになります。
   そうでない場合はコンソールアプリになります。</dd>
   <dt>--fileversion &lt;version&gt;</dt>
   <dt>--productversion &lt;version&gt;</dt>
@@ -183,10 +183,30 @@ Neri.files # -> Array
 
 データファイル内にあるファイルの一覧を配列で返します。
 
-### [DXRuby](http://dxruby.osdn.jp/) 等との連携
+### DXRuby 等との連携
 
 DXRuby を使用する場合、DXRuby の Image.load, Image.load_tiles, Sound.new を上書きし、データファイル内に画像・音声ファイルがあればそちらから読み込むようになります。
 これにより、スクリプトファイルを一切書き換えることなく、Neri を利用したファイルの簡易隠蔽機能が利用できます。
+
+### その他
+
+#### 実行ファイル作成時のみ、スクリプトを早期に終了させたい場合
+
+Neri は依存ファイルチェックのためにスクリプトを一度実行するので、その終了を待つか途中で強制終了させる必要があります。しかし、実行ファイル作成時には `NeriBuild` というモジュールが存在するので、以下のように `NeriBuild` が存在する場合は早期に終了するようにすることができます。
+
+```ruby
+require "foobar"
+# 必要なライブラリの読み込みがすべて終了
+exit if defined? NeriBuild
+```
+
+#### 実行ファイルのパス
+
+Neri で作られた実行ファイルを実行すると、環境変数 `NERI_EXECUTABLE` に実行ファイルのパスが保存されます。
+
+```ruby
+puts ENV["NERI_EXECUTABLE"]
+```
 
 ## Contributing
 

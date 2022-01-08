@@ -124,7 +124,7 @@ By specifying the encoding files to be copied with these options, you can minimi
   <dt>--console or --visible</dt>
   <dd>Set whether you want to use a windowed app or a console app.
   If it is a windowed app, the command prompt will not open.
-  If omitted, it will be a windowed app if the executed script file extension is ".rbw", or if DXRuby, Gosu, or LibUI is used.
+  If omitted, it will be a windowed app if the executed script file extension is ".rbw", or if [DXRuby](http://dxruby.osdn.jp/), [Gosu](https://www.libgosu.org/ruby.html), or [LibUI](https://github.com/kojix2/libui) is used.
   Otherwise, it will be a console app.</dd>
   <dt>--fileversion &lt;version&gt;</dt>
   <dt>--productversion &lt;version&gt;</dt>
@@ -185,10 +185,30 @@ Neri.files # -> Array
 
 Returns a list of files in a data file as Array.
 
-### Cooperation with [DXRuby](http://dxruby.osdn.jp/), etc.
+### Cooperation with DXRuby, etc.
 
 When using DXRuby, Neri will overwrite DXRuby's Image.load, Image.load_tiles, and Sound.new, and load from the image and sound files in the data file if there are any.
 This allows you to use Neri for simple file hiding without having to rewrite any script files.
+
+### Other
+
+#### If you want to exit the script early only when the executable is created
+
+Neri executes the script once to check for dependency files, so you need to wait for it to finish or force it to quit in the middle. However, since the module `NeriBuild` is present when the executable is created, you can make it exit early if `NeriBuild` is present, as follows.
+
+```ruby
+require "foobar"
+# All necessary libraries have been loaded.
+exit if defined? NeriBuild
+```
+
+#### Path of the executable file
+
+When you run an executable created by Neri, the path of the executable will be saved in the environment variable `NERI_EXECUTABLE`.
+
+```ruby
+puts ENV["NERI_EXECUTABLE"]
+```
 
 ## Contributing
 
