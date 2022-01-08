@@ -313,9 +313,13 @@ options:
         @use_ayame = true
       end
 
-      if @options[:invisible].nil? &&
-         (File.extname(scriptfile) == ".rbw" || @use_dxruby)
-        @options[:invisible] = true
+      if @options[:invisible].nil?
+        if File.extname(scriptfile) == ".rbw" ||
+           defined? DXRuby ||
+           defined? Gosu ||
+           defined? LibUI
+          @options[:invisible] = true
+        end
       end
       if @options[:pause_last].nil? && !@options[:invisible]
         @options[:pause_last] = true
