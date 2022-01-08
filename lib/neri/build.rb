@@ -63,7 +63,7 @@ module NeriBuild
       end
     end
 
-    def require_paths(file)
+    def gem_require_paths(file)
       path = gemspec_path(file)
       return nil unless path
       return @require_paths[path] if @require_paths.key?(path)
@@ -511,7 +511,7 @@ options:
       end
       unless @options[:enable_gems]
         system_files.each do |src, desc|
-          paths = require_paths(src)
+          paths = gem_require_paths(src)
           next unless paths
 
           desc.sub!(%r{/gems/(\d+\.\d+\.\d+)/gems/.+?-[^/]+/(.+)\z}) do
