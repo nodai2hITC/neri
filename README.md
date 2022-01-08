@@ -41,6 +41,8 @@ If you copy the entire output folder, you can run the script even in an environm
   <dd>Show version of Neri.</dd>
   <dt>--quiet</dt>
   <dd>It will no longer display the progress during execution.</dd>
+  <dt>--external-encoding</dt>
+  <dd>Set the character encoding for the output. If you encounter garbled characters when using settings such as --pause-text (see below), please make this setting.</dd>
 </dl>
 
 #### Add dependent files

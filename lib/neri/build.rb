@@ -165,7 +165,7 @@ options:
           exit
         when "--quiet", "-q"
           @options[:quiet] = true
-        when "--external_encoding"
+        when "--external-encoding"
           @options[:external_encoding] = argv.shift
         when "--dll"
           @options[:dlls] += argv.shift.split(",").map(&:strip)
@@ -315,9 +315,9 @@ options:
 
       if @options[:invisible].nil?
         if File.extname(scriptfile) == ".rbw" ||
-           defined? DXRuby ||
-           defined? Gosu ||
-           defined? LibUI
+           defined?(DXRuby) ||
+           defined?(Gosu) ||
+           defined?(LibUI)
           @options[:invisible] = true
         end
       end
