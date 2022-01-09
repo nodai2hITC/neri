@@ -9,7 +9,6 @@ There is a similar gem [OCRA](https://github.com/larsch/ocra), but Neri has the 
 - Advantages compared to OCRA
   - Faster startup due to no expansion.
   - When you want to create multiple executable files, OCRA generates multiple large executable files, but Neri can share system files, so the overall size is not large.
-  - OCRA has the problem that it cannot be run in environments with user names containing Non-Ascii characters, but Neri does not have this problem.
 - Disadvantages compared to OCRA
   - Basically, Neri can be used only in the environment where Ruby is installed by [Ruby Installer 2](https://rubyinstaller.org/) With Devkit. (Also, you need to run `ridk enable` to pass it before use.)
 
