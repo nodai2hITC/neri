@@ -83,9 +83,11 @@ By specifying the encoding files to be copied with these options, you can minimi
 #### Setting
 
 <dl>
-  <dt>--enable-gems</dt>
-  <dd>Use rubygems. If you don't use this option, the necessary gem files will be copied to the vendor_ruby folder, so that you can run without rubygems.</dd>
+  <dt>--enable-gems (default)</dt>
+  <dt>--disable-gems</dt>
+  <dd>Use rubygems. If you use --disable-gems, the necessary gem files will be copied to the vendor_ruby folder, so that you can run without rubygems.</dd>
   <dt>--enable-did-you-mean</dt>
+  <dt>--disable-did-you-mean (default)</dt>
   <dd>use did_you_mean</dd>
   <dt>--no-chdir</dt>
   <dd>By default, executables created by Neri will set the current folder to the same folder as the executable at runtime. With this option, the current folder will not be changed. (Please note that this option may not work well under Non-Ascii name folders.)</dd>

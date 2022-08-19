@@ -10,12 +10,12 @@ module NeriBuild
 
     external_encoding: nil,
 
-    dlls:     ["x64-msvcrt-ruby???.dll", "libssp-0.dll", "libgmp-10.dll"],
+    dlls:     [],
     libs:     [],
     gems:     [],
     encoding: "*",
 
-    enable_gems:         false,
+    enable_gems:         true,
     enable_did_you_mean: false,
     chdir_first:         true,
     pause_last:          nil,
@@ -116,8 +116,8 @@ options:
   --no-enc
   --encoding <enc1>,<enc2>,...
 
-  --enable-gems
-  --enable-did-you-mean
+  --enable-gems / --disable-gems
+  --enable-did-you-mean / --disable-did-you-mean
   --no-chdir
   --pause-last
   --no-pause-last
@@ -179,8 +179,12 @@ options:
           @options[:encoding] = argv.shift
         when "--enable-gems"
           @options[:enable_gems] = true
+        when "--disale-gems"
+          @options[:enable_gems] = false
         when "--enable-did-you-mean"
           @options[:enable_did_you_mean] = true
+        when "--disale-did-you-mean"
+          @options[:enable_did_you_mean] = false
         when "--no-chdir"
           @options[:chdir_first] = false
         when "--chdir-first" # deprecated
@@ -393,6 +397,7 @@ options:
 
     def additional_dlls_dependencies
       dependencies = []
+      @options[:dlls].push("*.dll") if RbConfig::CONFIG["arch"].include?("x64")
       @options[:dlls].each do |dll|
         dependencies += Dir.glob(File.join(bindir, "**", dll))
         dependencies += Dir.glob(File.join(bindir, "**", "#{dll}.*"))
@@ -497,6 +502,9 @@ options:
       dependencies += encoding_dependencies
       dependencies = select_dependencies(dependencies)
       dependencies += gemspec_dependencies(dependencies) if @options[:enable_gems]
+      if dependencies.find { |dep| dep.end_with?("/net/https.rb") }
+        dependencies.push("#{rubydir}ssl/cert.pem")
+      end
 
       size = dependencies.map { |d| File.size(d) }.inject(&:+)
       nputs "#{dependencies.size} files, #{size} bytes dependencies."

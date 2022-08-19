@@ -83,9 +83,11 @@ Neri はデフォルトでは、enc フォルダ内の文字コードライブ�
 
 <dl>
   <dt>--enable-gems</dt>
-  <dd>rubygems を使用します。このオプションを使わない場合、依存チェック時に使用した gem のファイルは vendor_ruby フォルダ内にコピーされ、rubygems 無しでも実行できるようになります。</dd>
+  <dt>--disable-gems (デフォルト)</dt>
+  <dd>rubygems を使用するかどうかを設定します。--disable-gems の場合も、依存チェック時に使用した gem のファイルは vendor_ruby フォルダ内にコピーされるため、rubygems 無しでも実行できるようになります。</dd>
   <dt>--enable-did-you-mean</dt>
-  <dd>did_you_mean を使用します。</dd>
+  <dt>--disable-did-you-mean (デフォルト)</dt>
+  <dd>did_you_mean を使用するかどうかを設定します。</dd>
   <dt>--no-chdir</dt>
   <dd>Neri で作成した実行ファイルは、デフォルトでは実行時にカレントフォルダを実行ファイルと同じフォルダに設定します。このオプションを使うとカレントフォルダを変更しなくなります。（このオプションを使うと、日本語フォルダ下などではうまく動かなくなる可能性があるので注意してください。）</dd>
   <dt>--pause-last</dt>
